@@ -1,5 +1,30 @@
 # Project Guidelines — aiecommerce-agents
 
+## Quality Gates (Mandatory)
+
+Before completing **any** coding task, the following commands **must** be executed and pass with zero errors:
+
+```bash
+# Lint (auto-fix safe issues)
+uv run ruff check . --fix
+
+# Format
+uv run ruff format .
+
+# Static type check
+uv run mypy .
+
+# Tests with coverage
+uv run pytest --cov=. --cov-report=term-missing
+```
+
+**Rules:**
+
+- All four commands must exit successfully (exit code 0) before the task is considered done.
+- If any command reports errors or failures, fix them before finishing.
+- These checks are enforced automatically on every commit via `pre-commit` hooks.
+- **Agents must run these commands at the end of every coding task** — no exceptions.
+
 ## Code Style
 
 - **Language:** Python 3.13+ with full type annotations on all function signatures and return types.
@@ -46,6 +71,12 @@ uv run pytest --cov=. --cov-report=term-missing
 # Lint and format
 uv run ruff check . --fix
 uv run ruff format .
+
+# Static type check
+uv run mypy .
+
+# Run pre-commit hooks on all files
+uv run pre-commit run --all-files
 ```
 
 ## Testing (TDD Workflow)

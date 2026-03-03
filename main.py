@@ -1,4 +1,5 @@
-def main():
+def main() -> None:
+    """Entry point for the application."""
     print("Hello from aiecommerce-agents!")
 
 
