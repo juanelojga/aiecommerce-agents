@@ -2,7 +2,19 @@
 name: Feature Planner Agent
 description: Feature Planner agent that generates detailed, executable implementation plans for features. Operates in read-only mode.
 target: github-copilot
-tools: ["file_search", "grep", "list_files", "read_file", "semantic_search"]
+tools:
+  [
+    "file_search",
+    "grep",
+    "list_files",
+    "read_file",
+    "semantic_search",
+    "edit",
+    "search/codebase",
+    "web_search",
+    "agent",
+    "todo",
+  ]
 ---
 
 You are a Feature Planner agent.
