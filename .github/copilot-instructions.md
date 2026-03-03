@@ -15,7 +15,7 @@ uv run ruff format .
 uv run mypy .
 
 # Tests with coverage
-uv run pytest --cov=. --cov-report=term-missing
+uv run pytest --cov=src/orchestrator --cov-report=term-missing
 ```
 
 **Rules:**
@@ -37,13 +37,16 @@ uv run pytest --cov=. --cov-report=term-missing
 ## Architecture
 
 - **Framework:** FastAPI with uvicorn (ASGI).
-- **Layout:** Flat module layout (no `src/` directory). Organize by domain:
-  - `main.py` — FastAPI app entry point, router includes.
-  - `routers/` — API route handlers grouped by domain.
-  - `services/` — Business logic layer (one service per domain concern).
-  - `models/` — Pydantic schemas (request, response, domain).
-  - `agents/` — AI agent definitions and orchestration.
-  - `tests/` — Mirrors the source tree (`tests/test_services/`, `tests/test_routers/`, etc.).
+- **Layout:** Source layout (`src/orchestrator/`). Organize by domain:
+  - `src/orchestrator/main.py` — FastAPI app entry point, router includes.
+  - `src/orchestrator/api/routes/` — API route handlers grouped by domain.
+  - `src/orchestrator/services/` — External API clients and business logic.
+  - `src/orchestrator/models/` — SQLAlchemy database entities (Local Registry).
+  - `src/orchestrator/schemas/` — Pydantic schemas (request, response, domain).
+  - `src/orchestrator/graph/` — LangGraph definitions, nodes, and state.
+  - `src/orchestrator/core/` — Global config, security, and logging.
+  - `scripts/` — Management scripts (e.g., sentinel loop).
+  - `tests/` — Mirrors the source tree (`tests/test_services/`, `tests/test_api/`, etc.).
 - **Dependency Injection:** Use FastAPI's `Depends()` for injecting services and configuration — never instantiate services directly inside route handlers.
 - **SOLID Principles:**
   - **S** — Each module/class has a single responsibility. Routers handle HTTP concerns only; services own business logic; models define data shapes.
@@ -63,10 +66,10 @@ uv sync
 uv add <package>
 
 # Run the application
-uv run fastapi dev main.py
+uv run uvicorn orchestrator.main:app --reload
 
 # Run tests (with coverage)
-uv run pytest --cov=. --cov-report=term-missing
+uv run pytest --cov=src/orchestrator --cov-report=term-missing
 
 # Lint and format
 uv run ruff check . --fix
@@ -104,8 +107,8 @@ uv run pre-commit run --all-files
 ## Integration Points
 
 - **AI/LLM services:** Wrap all LLM calls behind an abstract interface (`Protocol` or `ABC`) so the provider can be swapped without changing business logic.
-- **E-commerce APIs:** Isolate third-party API clients in dedicated modules under `clients/`. Each client should have its own Pydantic models for request/response mapping.
-- **Database (future):** Use an async ORM or driver. Keep repository pattern — data access behind an abstract interface.
+- **E-commerce APIs:** Isolate third-party API clients in dedicated modules under `services/`. Each client should have its own Pydantic models for request/response mapping.
+- **Database:** Use SQLAlchemy (async) with the repository pattern — data access behind an abstract interface. Models live in `src/orchestrator/models/`.
 
 ## Security
 

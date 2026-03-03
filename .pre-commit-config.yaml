@@ -27,5 +27,10 @@ repos:
       - id: mypy
         additional_dependencies:
           - pydantic
+          - pydantic-settings
           - fastapi
+          - httpx
+          - sqlalchemy[asyncio]
+          - pytest
+          - pytest-asyncio
         args: [--strict]

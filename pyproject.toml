@@ -1,11 +1,19 @@
 [project]
 name = "aiecommerce-agents"
 version = "0.1.0"
-description = "Add your description here"
+description = "AI-powered e-commerce agent orchestration platform"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "fastapi[standard]>=0.135.1",
+    "httpx>=0.28.1",
+    "langgraph>=0.4.1",
+    "langchain>=0.3.25",
+    "langchain-openai>=0.3.24",
+    "pydantic-settings>=2.9.1",
+    "python-dotenv>=1.1.0",
+    "sqlalchemy[asyncio]>=2.0.41",
+    "aiosqlite>=0.21.0",
 ]
 
 [dependency-groups]
@@ -20,10 +28,19 @@ dev = [
     "ruff>=0.15.4",
 ]
 
+# ── Build system (src layout) ──────────────────────────────────────────
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/orchestrator"]
+
 # ── Ruff (linter + formatter) ──────────────────────────────────────────
 [tool.ruff]
 target-version = "py313"
-line-length = 88
+line-length = 100
+src = ["src"]
 
 [tool.ruff.lint]
 select = [
@@ -41,7 +58,7 @@ select = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["routers", "services", "models", "agents", "clients"]
+known-first-party = ["orchestrator"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -54,13 +71,19 @@ strict = true
 plugins = ["pydantic.mypy"]
 warn_return_any = true
 warn_unused_configs = true
+mypy_path = "src"
 
 [[tool.mypy.overrides]]
 module = "tests.*"
 disallow_untyped_defs = false
 
+[[tool.mypy.overrides]]
+module = ["langgraph.*", "langchain.*", "langchain_openai.*"]
+ignore_missing_imports = true
+
 # ── Pytest ─────────────────────────────────────────────────────────────
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
-addopts = "--cov=. --cov-report=term-missing"
+addopts = "--cov=src/orchestrator --cov-report=term-missing"
+pythonpath = ["src"]
