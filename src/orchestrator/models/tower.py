@@ -3,7 +3,7 @@
 from datetime import datetime
 from enum import StrEnum
 
-from sqlalchemy import JSON, DateTime, Enum, String
+from sqlalchemy import JSON, DateTime, Enum, Float, String
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
@@ -34,6 +34,7 @@ class PublishedTower(Base):
         category: Target use-case category for the build.
         status: Whether the build is currently active or paused.
         component_skus: JSON mapping of component roles to SKU identifiers.
+        total_price: Total price of all components in the build.
         created_at: UTC timestamp when the record was first inserted.
         updated_at: UTC timestamp of the most recent update.
     """
@@ -45,6 +46,7 @@ class PublishedTower(Base):
     category: Mapped[TowerCategory] = mapped_column(Enum(TowerCategory))
     status: Mapped[TowerStatus] = mapped_column(Enum(TowerStatus), default=TowerStatus.ACTIVE)
     component_skus: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
+    total_price: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
