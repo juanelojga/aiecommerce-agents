@@ -5,10 +5,10 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from orchestrator.core.exceptions import UniquenessError
-from orchestrator.schemas.inventory import (
+from orchestrator.schemas.product import (
     ComponentCategory,
     ComponentSelection,
-    ProductSpecs,
+    ProductDetail,
     TowerBuild,
 )
 from orchestrator.services.uniqueness import UniquenessEngine
@@ -18,9 +18,16 @@ from orchestrator.services.uniqueness import UniquenessEngine
 # ---------------------------------------------------------------------------
 
 
-def _make_specs(sku: str) -> ProductSpecs:
-    """Return minimal ProductSpecs for a given SKU."""
-    return ProductSpecs(id=1, sku=sku)
+def _make_specs(sku: str) -> ProductDetail:
+    """Return minimal ProductDetail for a given SKU."""
+    return ProductDetail(
+        id=1,
+        sku=sku,
+        code=sku,
+        normalized_name=sku,
+        price=0.0,
+        category=ComponentCategory.CPU,
+    )
 
 
 def _make_selection(
@@ -29,7 +36,7 @@ def _make_selection(
     """Return a ComponentSelection for the given category and SKU."""
     return ComponentSelection(
         sku=sku,
-        name=f"Component {sku}",
+        normalized_name=f"Component {sku}",
         category=category,
         price=price,
         specs=_make_specs(sku),

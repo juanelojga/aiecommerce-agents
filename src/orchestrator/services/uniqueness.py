@@ -1,7 +1,7 @@
 """SHA-256 uniqueness engine for tower builds.
 
 Computes a deterministic hash from the core component SKU set of a
-:class:`~orchestrator.schemas.inventory.TowerBuild`, checks the Local Registry
+:class:`~orchestrator.schemas.product.TowerBuild`, checks the Local Registry
 for duplicates, and swaps secondary components when a collision is detected.
 """
 
@@ -9,7 +9,7 @@ import hashlib
 import logging
 
 from orchestrator.core.exceptions import UniquenessError
-from orchestrator.schemas.inventory import ComponentCategory, ComponentSelection, TowerBuild
+from orchestrator.schemas.product import ComponentCategory, ComponentSelection, TowerBuild
 from orchestrator.services.tower_repository import TowerRepository
 
 logger = logging.getLogger(__name__)
