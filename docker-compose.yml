@@ -1,0 +1,88 @@
+# ── Docker Compose — aiecommerce-agents (development) ──────────────────
+# See DOCKER.md for full usage documentation.
+#
+# Quick start:
+#   cp .env.example .env   # adjust ports/credentials if needed
+#   docker compose up --build
+#
+# Configurable ports (set in .env to avoid conflicts with other stacks):
+#   API_PORT      — host port for the FastAPI server   (default: 8000)
+#   POSTGRES_PORT — host port for PostgreSQL            (default: 5432)
+
+services:
+  # ── PostgreSQL database ────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-orchestrator}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-orchestrator}
+      POSTGRES_DB: ${POSTGRES_DB:-orchestrator}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-orchestrator} -d ${POSTGRES_DB:-orchestrator}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── FastAPI application server (hot-reload) ────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    command:
+      - uv
+      - run
+      - uvicorn
+      - orchestrator.main:app
+      - --host
+      - "0.0.0.0"
+      - --port
+      - "8000"
+      - --reload
+      - --reload-dir
+      - /app/src
+    ports:
+      - "${API_PORT:-8000}:8000"
+    volumes:
+      - ./src:/app/src
+      - ./tests:/app/tests
+      - ./scripts:/app/scripts
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://${POSTGRES_USER:-orchestrator}:${POSTGRES_PASSWORD:-orchestrator}@db:5432/${POSTGRES_DB:-orchestrator}"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ── Sentinel monitoring process ────────────────────────────────────────
+  sentinel:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    command: ["uv", "run", "python", "scripts/sentinel.py"]
+    volumes:
+      - ./src:/app/src
+      - ./scripts:/app/scripts
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://${POSTGRES_USER:-orchestrator}:${POSTGRES_PASSWORD:-orchestrator}@db:5432/${POSTGRES_DB:-orchestrator}"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+    driver: local

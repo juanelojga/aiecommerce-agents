@@ -23,9 +23,16 @@ class Settings(BaseSettings):
     # ── Application ─────────────────────────────────────────────────────
     APP_NAME: str = "aiecommerce-agents"
     DEBUG: bool = False
+    API_PORT: int = 8000
 
     # ── Database (Local Registry) ───────────────────────────────────────
-    DATABASE_URL: str = "sqlite+aiosqlite:///./local_registry.db"
+    DATABASE_URL: str = "postgresql+asyncpg://orchestrator:orchestrator@localhost:5432/orchestrator"
+
+    # ── PostgreSQL (used by Docker Compose) ─────────────────────────────
+    POSTGRES_PORT: int = 5432
+    POSTGRES_USER: str = "orchestrator"
+    POSTGRES_PASSWORD: str = "orchestrator"
+    POSTGRES_DB: str = "orchestrator"
 
     # ── AIEcommerce API ─────────────────────────────────────────────────
     AIECOMMERCE_API_URL: str = "https://api.aiecommerce.example.com"

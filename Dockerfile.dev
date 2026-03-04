@@ -1,0 +1,41 @@
+# ── Development Dockerfile for aiecommerce-agents ──────────────────────
+# Single-stage image with all dev tooling (ruff, mypy, pytest).
+# Designed for use with docker-compose.yml (volume-mounted source code).
+
+FROM python:3.13-slim AS dev
+
+# Prevent Python from writing .pyc files and enable unbuffered output
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+# ── System dependencies ────────────────────────────────────────────────
+# libpq-dev + gcc: required to compile asyncpg (PostgreSQL async driver)
+# curl: useful for health checks and debugging
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        gcc \
+        libpq-dev \
+        curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# ── Install uv (fast Python package manager) ───────────────────────────
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+WORKDIR /app
+
+# ── Dependency layer (cached unless pyproject.toml / uv.lock change) ──
+COPY pyproject.toml uv.lock README.md ./
+RUN uv sync --frozen
+
+# ── Application source ─────────────────────────────────────────────────
+COPY src/ src/
+COPY scripts/ scripts/
+COPY tests/ tests/
+
+# ── Python path ─────────────────────────────────────────────────────────
+ENV PYTHONPATH="/app/src"
+
+EXPOSE 8000
+
+# ── Default command: FastAPI dev server with hot-reload ─────────────────
+CMD ["uv", "run", "uvicorn", "orchestrator.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
