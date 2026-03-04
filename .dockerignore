@@ -1,0 +1,54 @@
+# Version control
+.git
+.gitignore
+
+# Python artifacts
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv
+venv/
+env/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Linter / Type checker caches
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# Pre-commit
+.pre-commit-config.yaml
+
+# Environment files (secrets — injected via docker-compose env_file)
+.env
+
+# Local SQLite database
+*.db
+
+# Docker files (no recursive COPY)
+Dockerfile
+docker-compose.yml
+docker-compose.yaml
+DOCKER.md
+
+# Documentation / metadata (README.md kept — referenced by pyproject.toml)
+LICENSE
+DOCKER.md
+CHANGELOG.md
+CONTRIBUTING.md
+
+# OS files
+.DS_Store
+Thumbs.db
