@@ -82,6 +82,18 @@ cp .env.example .env
 
 Fill in required keys in `.env` as needed (especially API/LLM credentials).
 
+Generate a secure value for `API_KEY` (recommended):
+
+```bash
+openssl rand -hex 32
+```
+
+Alternative with Python:
+
+```bash
+uv run python -c "import secrets; print(secrets.token_hex(32))"
+```
+
 ### 4) Run the API
 
 ```bash
@@ -119,7 +131,7 @@ See [DOCKER.md](DOCKER.md) for complete Docker usage, troubleshooting, and port/
 
 Main settings are loaded from environment variables in `src/orchestrator/core/config.py`:
 
-- `APP_NAME`, `DEBUG`, `API_PORT`
+- `APP_NAME`, `DEBUG`, `API_PORT`, `API_KEY`
 - `DATABASE_URL`, `POSTGRES_*`
 - `AIECOMMERCE_API_URL`, `AIECOMMERCE_API_KEY`
 - `MERCADOLIBRE_*`
@@ -140,16 +152,57 @@ uv run pytest --cov=src/orchestrator --cov-report=term-missing
 
 ## Testing
 
-Run tests:
+### Local (without Docker)
+
+1. Install dependencies:
+
+```bash
+uv sync
+```
+
+2. Run all tests:
 
 ```bash
 uv run pytest
 ```
 
-With coverage:
+3. Run a single test file:
+
+```bash
+uv run pytest tests/test_main.py
+```
+
+4. Run tests with coverage:
 
 ```bash
 uv run pytest --cov=src/orchestrator --cov-report=term-missing
+```
+
+### Docker (inside `api` container)
+
+1. Start the Docker stack:
+
+```bash
+cp .env.example .env
+docker compose up --build -d
+```
+
+2. Run all tests in the container:
+
+```bash
+docker compose exec api uv run pytest
+```
+
+3. Run a single test file in the container:
+
+```bash
+docker compose exec api uv run pytest tests/test_main.py
+```
+
+4. Run tests with coverage in the container:
+
+```bash
+docker compose exec api uv run pytest --cov=src/orchestrator --cov-report=term-missing
 ```
 
 ## Product requirements
