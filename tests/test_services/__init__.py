@@ -1,1 +1,1 @@
-"""Tests for service-layer modules."""
+"""Tests for service layer modules."""
