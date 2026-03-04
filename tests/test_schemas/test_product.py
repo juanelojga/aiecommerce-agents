@@ -1,14 +1,14 @@
-"""Tests for inventory Pydantic schemas."""
+"""Tests for product Pydantic schemas."""
 
 import pytest
 from pydantic import ValidationError
 
-from orchestrator.schemas.inventory import (
+from orchestrator.schemas.product import (
     ComponentCategory,
     ComponentSelection,
-    InventoryItem,
-    InventoryResponse,
-    ProductSpecs,
+    ProductDetail,
+    ProductListItem,
+    ProductListResponse,
     TowerBuild,
 )
 
@@ -16,27 +16,33 @@ from orchestrator.schemas.inventory import (
 # Helpers / fixtures
 # ---------------------------------------------------------------------------
 
-VALID_SPECS_DATA: dict[str, object] = {
+VALID_DETAIL_DATA: dict[str, object] = {
     "id": 10,
+    "code": "PROD-001",
     "sku": "CPU-001",
+    "normalized_name": "Ryzen 9 7950X",
+    "price": 699.99,
+    "category": "cpu",
+    "specs": {"socket": "AM5", "tdp": 170},
 }
 
 VALID_ITEM_DATA: dict[str, object] = {
     "id": 1,
+    "code": "PROD-001",
     "sku": "CPU-001",
-    "name": "Ryzen 9 7950X",
+    "normalized_name": "Ryzen 9 7950X",
     "category": "cpu",
     "price": 699.99,
-    "available_quantity": 5,
     "is_active": True,
+    "total_available_stock": 5,
 }
 
 VALID_SELECTION_DATA: dict[str, object] = {
     "sku": "CPU-001",
-    "name": "Ryzen 9 7950X",
+    "normalized_name": "Ryzen 9 7950X",
     "category": "cpu",
     "price": 699.99,
-    "specs": VALID_SPECS_DATA,
+    "specs": VALID_DETAIL_DATA,
 }
 
 
@@ -46,10 +52,17 @@ def _make_selection(
     """Return a minimal valid ComponentSelection dict for the given category."""
     return {
         "sku": sku,
-        "name": f"Component {sku}",
+        "normalized_name": f"Component {sku}",
         "category": category,
         "price": price,
-        "specs": {"id": 1, "sku": sku},
+        "specs": {
+            "id": 1,
+            "code": f"PROD-{sku}",
+            "sku": sku,
+            "normalized_name": f"Component {sku}",
+            "price": price,
+            "category": category,
+        },
     }
 
 
@@ -72,99 +85,133 @@ def test_component_category_is_string_enum() -> None:
 
 
 # ---------------------------------------------------------------------------
-# InventoryItem
+# ProductListItem
 # ---------------------------------------------------------------------------
 
 
-def test_inventory_item_valid() -> None:
-    """Valid data should construct an InventoryItem without errors."""
-    item = InventoryItem(**VALID_ITEM_DATA)
+def test_product_list_item_valid() -> None:
+    """Valid data should construct a ProductListItem without errors."""
+    item = ProductListItem(**VALID_ITEM_DATA)
     assert item.id == 1
     assert item.sku == "CPU-001"
+    assert item.code == "PROD-001"
+    assert item.normalized_name == "Ryzen 9 7950X"
     assert item.category == ComponentCategory.CPU
+    assert item.total_available_stock == 5
     assert item.last_bundled_date is None
 
 
-def test_inventory_item_with_last_bundled_date() -> None:
+def test_product_list_item_with_last_bundled_date() -> None:
     """last_bundled_date is stored when provided."""
     data = {**VALID_ITEM_DATA, "last_bundled_date": "2025-01-15"}
-    item = InventoryItem(**data)
+    item = ProductListItem(**data)
     assert item.last_bundled_date == "2025-01-15"
 
 
-def test_inventory_item_missing_required() -> None:
+def test_product_list_item_missing_required() -> None:
     """Omitting required fields must raise a ValidationError."""
     incomplete = {k: v for k, v in VALID_ITEM_DATA.items() if k != "sku"}
     with pytest.raises(ValidationError):
-        InventoryItem(**incomplete)
+        ProductListItem(**incomplete)
 
 
-def test_inventory_item_invalid_category() -> None:
+def test_product_list_item_invalid_category() -> None:
     """An unknown category string must raise a ValidationError."""
     bad = {**VALID_ITEM_DATA, "category": "unknown_category"}
     with pytest.raises(ValidationError):
-        InventoryItem(**bad)
+        ProductListItem(**bad)
 
 
 # ---------------------------------------------------------------------------
-# ProductSpecs
+# ProductDetail
 # ---------------------------------------------------------------------------
 
 
-def test_product_specs_optional_fields() -> None:
-    """Optional fields on ProductSpecs default to None / False / 0."""
-    specs = ProductSpecs(id=1, sku="MB-001")
-    assert specs.socket is None
-    assert specs.ddr_generation is None
-    assert specs.form_factor is None
-    assert specs.wattage is None
-    assert specs.tdp is None
-    assert specs.ssd_interface is None
-    assert specs.has_integrated_psu is False
-    assert specs.included_fans == 0
-    assert specs.ram_speed is None
-    assert specs.extra_specs == {}
-
-
-def test_product_specs_all_fields() -> None:
-    """All provided fields are stored correctly on ProductSpecs."""
-    specs = ProductSpecs(
-        id=2,
-        sku="RAM-001",
-        socket="AM5",
-        ddr_generation="DDR5",
-        form_factor="DIMM",
-        wattage=None,
-        tdp=15,
-        ssd_interface=None,
-        has_integrated_psu=False,
-        included_fans=0,
-        ram_speed=6000,
-        extra_specs={"latency": "CL30"},
+def test_product_detail_optional_fields() -> None:
+    """Optional fields on ProductDetail default to None / empty / 0."""
+    detail = ProductDetail(
+        id=1,
+        code="PROD-001",
+        sku="MB-001",
+        normalized_name="ASUS ROG",
+        price=299.99,
+        category="motherboard",
     )
-    assert specs.ram_speed == 6000
-    assert specs.extra_specs == {"latency": "CL30"}
+    assert detail.model_name is None
+    assert detail.description is None
+    assert detail.seo_title is None
+    assert detail.seo_description is None
+    assert detail.gtin is None
+    assert detail.specs == {}
+    assert detail.image_url is None
+    assert detail.image_urls == []
+    assert detail.total_available_stock == 0
+
+
+def test_product_detail_all_fields() -> None:
+    """All provided fields are stored correctly on ProductDetail."""
+    detail = ProductDetail(
+        id=2,
+        code="PROD-RAM",
+        sku="RAM-001",
+        normalized_name="Corsair Vengeance DDR5",
+        model_name="CMK32GX5M2B5600C36",
+        description="High-performance DDR5 memory.",
+        seo_title="Corsair DDR5 RAM",
+        seo_description="Buy Corsair DDR5 memory at the best price.",
+        price=129.99,
+        category="ram",
+        gtin="0840006618522",
+        specs={"ddr_generation": "DDR5", "ram_speed": 6000, "latency": "CL30"},
+        image_url="https://example.com/ram.jpg",
+        image_urls=[{"url": "https://example.com/ram.jpg", "alt": "RAM front"}],
+        total_available_stock=25,
+    )
+    assert detail.normalized_name == "Corsair Vengeance DDR5"
+    assert detail.specs == {"ddr_generation": "DDR5", "ram_speed": 6000, "latency": "CL30"}
+    assert detail.total_available_stock == 25
+    assert len(detail.image_urls) == 1
 
 
 # ---------------------------------------------------------------------------
-# InventoryResponse
+# ProductListResponse
 # ---------------------------------------------------------------------------
 
 
-def test_inventory_response_valid() -> None:
-    """InventoryResponse wraps a count and a list of InventoryItems."""
+def test_product_list_response_valid() -> None:
+    """ProductListResponse wraps a count and a list of ProductListItems."""
     payload = {"count": 2, "results": [VALID_ITEM_DATA, {**VALID_ITEM_DATA, "id": 2}]}
-    response = InventoryResponse(**payload)
+    response = ProductListResponse(**payload)
     assert response.count == 2
     assert len(response.results) == 2
-    assert all(isinstance(r, InventoryItem) for r in response.results)
+    assert all(isinstance(r, ProductListItem) for r in response.results)
 
 
-def test_inventory_response_empty() -> None:
-    """InventoryResponse accepts an empty results list."""
-    response = InventoryResponse(count=0, results=[])
+def test_product_list_response_empty() -> None:
+    """ProductListResponse accepts an empty results list."""
+    response = ProductListResponse(count=0, results=[])
     assert response.count == 0
     assert response.results == []
+
+
+def test_product_list_response_pagination_fields() -> None:
+    """ProductListResponse stores next and previous pagination URLs."""
+    payload = {
+        "count": 50,
+        "next": "https://api.example.com/api/v1/products/?page=3",
+        "previous": "https://api.example.com/api/v1/products/?page=1",
+        "results": [VALID_ITEM_DATA],
+    }
+    response = ProductListResponse(**payload)
+    assert response.next == "https://api.example.com/api/v1/products/?page=3"
+    assert response.previous == "https://api.example.com/api/v1/products/?page=1"
+
+
+def test_product_list_response_pagination_defaults_none() -> None:
+    """next and previous default to None when not provided."""
+    response = ProductListResponse(count=1, results=[ProductListItem(**VALID_ITEM_DATA)])
+    assert response.next is None
+    assert response.previous is None
 
 
 # ---------------------------------------------------------------------------
@@ -181,9 +228,9 @@ def test_component_selection_round_trip() -> None:
 
 
 def test_component_selection_stores_specs() -> None:
-    """ComponentSelection.specs must be a ProductSpecs instance."""
+    """ComponentSelection.specs must be a ProductDetail instance."""
     selection = ComponentSelection(**VALID_SELECTION_DATA)
-    assert isinstance(selection.specs, ProductSpecs)
+    assert isinstance(selection.specs, ProductDetail)
     assert selection.specs.sku == "CPU-001"
 
 

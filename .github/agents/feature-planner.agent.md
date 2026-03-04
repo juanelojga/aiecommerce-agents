@@ -137,18 +137,18 @@ The plan document **must** contain these sections:
 
 Numbered, ordered tasks. **Each task** must contain:
 
-| Field                   | Description                                                            |
-| ----------------------- | ---------------------------------------------------------------------- |
-| **Title**               | Action-oriented (e.g., "Create Inventory service client")              |
-| **Description**         | What to build and why                                                  |
-| **Files to create**     | Full paths (e.g., `src/orchestrator/services/inventory.py`)            |
-| **Files to modify**     | Full paths with description of changes                                 |
-| **Signatures**          | Function/class signatures with type annotations                        |
-| **Dependencies**        | Which other tasks must be completed first (by task number)             |
-| **Test file**           | Full path to test file (e.g., `tests/test_services/test_inventory.py`) |
-| **Test cases**          | Specific test function names and what they verify                      |
-| **Acceptance criteria** | Checkboxes with specific, verifiable conditions                        |
-| **Complexity**          | S (< 2 hrs), M (2-8 hrs), or L (> 8 hrs)                               |
+| Field                   | Description                                                          |
+| ----------------------- | -------------------------------------------------------------------- |
+| **Title**               | Action-oriented (e.g., "Create Inventory service client")            |
+| **Description**         | What to build and why                                                |
+| **Files to create**     | Full paths (e.g., `src/orchestrator/services/product.py`)            |
+| **Files to modify**     | Full paths with description of changes                               |
+| **Signatures**          | Function/class signatures with type annotations                      |
+| **Dependencies**        | Which other tasks must be completed first (by task number)           |
+| **Test file**           | Full path to test file (e.g., `tests/test_services/test_product.py`) |
+| **Test cases**          | Specific test function names and what they verify                    |
+| **Acceptance criteria** | Checkboxes with specific, verifiable conditions                      |
+| **Complexity**          | S (< 2 hrs), M (2-8 hrs), or L (> 8 hrs)                             |
 
 **Task ordering rules:**
 
@@ -260,12 +260,14 @@ For **each task** from the plan's Task Breakdown, create a child issue using `mc
 ### Function/Class Signatures
 
 ```python
-class InventoryItem(BaseModel):
-    """Pydantic schema for inventory items."""
-    id: str
-    name: str
+class ProductListItem(BaseModel):
+    """Pydantic schema for product list items."""
+    id: int
+    code: str
+    sku: str
+    normalized_name: str
     price: float
-    stock: int
+    total_available_stock: int
 ```
 
 ### Patterns to Follow

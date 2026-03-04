@@ -278,7 +278,7 @@ src/orchestrator/
 │   └── component_audit.py     # ComponentAudit model
 ├── schemas/                   # Pydantic schemas
 │   ├── common.py              # Shared schemas (existing)
-│   ├── inventory.py           # aiecommerce inventory schemas
+│   ├── product.py             # aiecommerce product schemas
 │   ├── tower.py               # Tower request/response schemas
 │   ├── bundle.py              # Bundle request/response schemas
 │   └── mercadolibre.py        # ML API request/response schemas
@@ -319,8 +319,8 @@ tests/
 
 ### aiecommerce API Endpoints Consumed
 
-- `GET /api/v1/agent/inventory/` — Filtered active inventory with stock > 0
-- `GET /api/v1/agent/product/{id}/specs/` — Deep technical specs for compatibility checking
+- `GET /api/v1/products/` — Paginated product list (filterable by `category`, `has_stock`, `is_active`)
+- `GET /api/v1/products/{id}/` — Full product detail with specs, images, and stock
 - `POST /api/v1/agent/assembled-log/` — Report successful combinations (feedback loop)
 
 ### Data Synchronization
