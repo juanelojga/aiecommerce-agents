@@ -140,16 +140,57 @@ uv run pytest --cov=src/orchestrator --cov-report=term-missing
 
 ## Testing
 
-Run tests:
+### Local (without Docker)
+
+1. Install dependencies:
+
+```bash
+uv sync
+```
+
+2. Run all tests:
 
 ```bash
 uv run pytest
 ```
 
-With coverage:
+3. Run a single test file:
+
+```bash
+uv run pytest tests/test_main.py
+```
+
+4. Run tests with coverage:
 
 ```bash
 uv run pytest --cov=src/orchestrator --cov-report=term-missing
+```
+
+### Docker (inside `api` container)
+
+1. Start the Docker stack:
+
+```bash
+cp .env.example .env
+docker compose up --build -d
+```
+
+2. Run all tests in the container:
+
+```bash
+docker compose exec api uv run pytest
+```
+
+3. Run a single test file in the container:
+
+```bash
+docker compose exec api uv run pytest tests/test_main.py
+```
+
+4. Run tests with coverage in the container:
+
+```bash
+docker compose exec api uv run pytest --cov=src/orchestrator --cov-report=term-missing
 ```
 
 ## Product requirements
