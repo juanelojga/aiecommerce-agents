@@ -43,8 +43,8 @@ The system can fetch inventory, assemble valid unique towers for all 3 tiers, st
 
 ### aiecommerce API Endpoints Consumed (Phase 1)
 
-- `GET /api/v1/agent/inventory/` — Filtered active inventory with stock > 0
-- `GET /api/v1/agent/product/{id}/specs/` — Deep technical specs for compatibility checking
+- `GET /api/v1/products/` — Paginated product list (filterable by `category`, `has_stock`, `is_active`)
+- `GET /api/v1/products/{id}/` — Full product detail with specs, images, and stock
 
 ---
 
@@ -105,7 +105,7 @@ The system can fetch inventory, assemble valid unique towers for all 3 tiers, st
 | ------------------------------------------ | --------------------------------------------------------- |
 | `src/orchestrator/main.py`                 | Add lifespan for DB init, include tower + trigger routers |
 | `src/orchestrator/core/config.py`          | Add `ASSEMBLY_MARGIN_PCT`, `API_KEY` settings             |
-| `src/orchestrator/services/aiecommerce.py` | Add `get_inventory()`, `get_product_specs()` methods      |
+| `src/orchestrator/services/aiecommerce.py` | Add `list_products()`, `get_product_detail()` methods     |
 | `src/orchestrator/graph/state.py`          | Extend `GraphState` with tower assembly fields            |
 | `src/orchestrator/models/__init__.py`      | Re-export all models                                      |
 | `tests/conftest.py`                        | Add DB session fixtures, mock service fixtures            |
@@ -441,7 +441,7 @@ async def verify_api_key(api_key: str = Depends(api_key_header)) -> str:
 **Signatures:**
 
 ```python
-# src/orchestrator/schemas/inventory.py
+# src/orchestrator/schemas/product.py
 import enum
 from pydantic import BaseModel, Field
 
@@ -455,44 +455,50 @@ class ComponentCategory(str, enum.Enum):
     CASE = "case"
     FAN = "fan"
 
-class InventoryItem(BaseModel):
-    """A single component from the aiecommerce inventory."""
+class ProductListItem(BaseModel):
+    """A single product from the aiecommerce product list."""
     id: int
+    code: str
     sku: str
-    name: str
-    category: ComponentCategory
+    normalized_name: str
     price: float
-    available_quantity: int
-    is_active: bool
+    category: ComponentCategory
     last_bundled_date: str | None = None
+    is_active: bool = True
+    total_available_stock: int = 0
 
-class ProductSpecs(BaseModel):
-    """Deep technical specifications for a component."""
+class ProductDetail(BaseModel):
+    """Full product detail from the aiecommerce API."""
     id: int
+    code: str
     sku: str
-    socket: str | None = None
-    ddr_generation: str | None = None
-    form_factor: str | None = None
-    wattage: int | None = None
-    tdp: int | None = None
-    ssd_interface: str | None = None
-    has_integrated_psu: bool = False
-    included_fans: int = 0
-    ram_speed: int | None = None
-    extra_specs: dict[str, object] = Field(default_factory=dict)
+    normalized_name: str
+    model_name: str | None = None
+    description: str | None = None
+    seo_title: str | None = None
+    seo_description: str | None = None
+    price: float
+    category: ComponentCategory
+    gtin: str | None = None
+    specs: dict[str, object] = Field(default_factory=dict)
+    image_url: str | None = None
+    image_urls: list[dict[str, object]] = Field(default_factory=list)
+    total_available_stock: int = 0
 
-class InventoryResponse(BaseModel):
-    """Response from the aiecommerce inventory endpoint."""
+class ProductListResponse(BaseModel):
+    """Paginated response from the aiecommerce products endpoint."""
     count: int
-    results: list[InventoryItem]
+    next: str | None = None
+    previous: str | None = None
+    results: list[ProductListItem]
 
 class ComponentSelection(BaseModel):
     """A selected component for a tower build."""
     sku: str
-    name: str
+    normalized_name: str
     category: ComponentCategory
     price: float
-    specs: ProductSpecs
+    specs: ProductDetail
 
 class TowerBuild(BaseModel):
     """A complete tower build with all components."""
@@ -511,22 +517,22 @@ class TowerBuild(BaseModel):
 
 **Dependencies:** None
 
-**Test file:** `tests/test_schemas/test_inventory.py`
+**Test file:** `tests/test_schemas/test_product.py`
 
 **Test cases:**
 | Test Function | Verifies |
 |--------------|----------|
-| `test_inventory_item_valid` | Valid data creates InventoryItem |
-| `test_inventory_item_missing_required` | Missing fields raise ValidationError |
-| `test_product_specs_optional_fields` | Optional specs default correctly |
+| `test_product_list_item_valid` | Valid data creates ProductListItem |
+| `test_product_list_item_missing_required` | Missing fields raise ValidationError |
+| `test_product_detail_optional_fields` | Optional detail fields default correctly |
 | `test_component_selection_round_trip` | Serialization/deserialization works |
 | `test_tower_build_hash_default` | Default bundle_hash is empty string |
 | `test_component_category_enum_values` | All expected categories exist |
 
 **Acceptance criteria:**
 
-- [ ] `InventoryItem` maps to aiecommerce API `GET /api/v1/agent/inventory/` response items
-- [ ] `ProductSpecs` maps to aiecommerce API `GET /api/v1/agent/product/{id}/specs/` response
+- [ ] `ProductListItem` maps to aiecommerce API `GET /api/v1/products/` response items
+- [ ] `ProductDetail` maps to aiecommerce API `GET /api/v1/products/{id}/` response
 - [ ] `TowerBuild` represents a complete, validated build
 - [ ] All schemas have Google-style docstrings
 - [ ] All quality gates pass
@@ -612,46 +618,46 @@ class RunTriggerResponse(BaseModel):
 
 ### Task 7: Extend aiecommerce API client with inventory methods
 
-**Description:** Add typed methods to `AIEcommerceClient` for fetching inventory (filtered by category, active, in-stock) and product specs. Implement retry logic with exponential backoff as required by the NFRs.
+**Description:** Add typed methods to `AIEcommerceClient` for fetching paginated product lists (filtered by category, active, has_stock) and product detail. Implement retry logic with exponential backoff as required by the NFRs.
 
 **Files to modify:**
 
-- `src/orchestrator/services/aiecommerce.py` — add `get_inventory()`, `get_product_specs()`, retry logic
+- `src/orchestrator/services/aiecommerce.py` — add `list_products()`, `get_product_detail()`, retry logic
 
 **Signatures:**
 
 ```python
 # Extensions to AIEcommerceClient
 
-async def get_inventory(
+async def list_products(
     self,
     category: str | None = None,
     active_only: bool = True,
-    in_stock_only: bool = True,
-) -> InventoryResponse:
-    """Fetch filtered inventory from the aiecommerce API.
+    has_stock: bool = True,
+) -> ProductListResponse:
+    """Fetch paginated product list from the aiecommerce API.
 
     Args:
         category: Filter by component category (cpu, motherboard, etc.).
         active_only: Only return active items.
-        in_stock_only: Only return items with available_quantity > 0.
+        has_stock: Only return items with stock > 0.
 
     Returns:
-        Parsed inventory response with typed items.
+        Parsed product list response with typed items.
 
     Raises:
         APIClientError: If the API call fails after retries.
     """
     ...
 
-async def get_product_specs(self, product_id: int) -> ProductSpecs:
-    """Fetch deep technical specifications for a product.
+async def get_product_detail(self, product_id: int) -> ProductDetail:
+    """Fetch full product detail including specs, images, and stock.
 
     Args:
         product_id: The product ID in the aiecommerce system.
 
     Returns:
-        Parsed product specifications.
+        Parsed product detail.
 
     Raises:
         APIClientError: If the API call fails after retries.
@@ -666,18 +672,18 @@ async def get_product_specs(self, product_id: int) -> ProductSpecs:
 **Test cases:**
 | Test Function | Verifies |
 |--------------|----------|
-| `test_get_inventory_success` | Returns typed `InventoryResponse` |
-| `test_get_inventory_with_category_filter` | Passes category query param |
-| `test_get_inventory_api_error_raises` | API errors wrapped in `APIClientError` |
-| `test_get_inventory_retry_on_failure` | Retries with backoff on transient errors |
-| `test_get_product_specs_success` | Returns typed `ProductSpecs` |
-| `test_get_product_specs_not_found` | 404 raises `APIClientError` |
+| `test_list_products_success` | Returns typed `ProductListResponse` |
+| `test_list_products_with_category_filter` | Passes category query param |
+| `test_list_products_api_error_raises` | API errors wrapped in `APIClientError` |
+| `test_list_products_retry_on_failure` | Retries with backoff on transient errors |
+| `test_get_product_detail_success` | Returns typed `ProductDetail` |
+| `test_get_product_detail_not_found` | 404 raises `APIClientError` |
 
 **Acceptance criteria:**
 
-- [ ] `get_inventory()` returns `InventoryResponse` with typed `InventoryItem` list
+- [ ] `list_products()` returns `ProductListResponse` with typed `ProductListItem` list
 - [ ] Category, active, and stock filters are passed as query parameters
-- [ ] `get_product_specs()` returns `ProductSpecs` for a given product ID
+- [ ] `get_product_detail()` returns `ProductDetail` for a given product ID
 - [ ] Retry logic: max 3 retries, exponential backoff with base delay 5 seconds
 - [ ] Errors are wrapped in `APIClientError`
 - [ ] All quality gates pass
@@ -837,7 +843,7 @@ class ComponentAuditRepository:
 ```python
 # src/orchestrator/services/compatibility.py
 from orchestrator.core.exceptions import CompatibilityError
-from orchestrator.schemas.inventory import ComponentSelection, TowerBuild
+from orchestrator.schemas.product import ComponentSelection, TowerBuild
 
 class CompatibilityEngine:
     """Validates technical compatibility of PC component selections.
@@ -930,7 +936,7 @@ class CompatibilityEngine:
 
 ```python
 # src/orchestrator/services/uniqueness.py
-from orchestrator.schemas.inventory import TowerBuild
+from orchestrator.schemas.product import TowerBuild
 from orchestrator.services.tower_repository import TowerRepository
 
 class UniquenessEngine:

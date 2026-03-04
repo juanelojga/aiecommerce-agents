@@ -4,7 +4,7 @@ The graph state is treated as immutable within nodes — each node returns
 a new state update dict rather than mutating the object in place.
 """
 
-from typing import Annotated
+from typing import Annotated, Literal
 
 from langgraph.graph.message import add_messages
 from pydantic import BaseModel, Field
@@ -16,7 +16,26 @@ class GraphState(BaseModel):
     Attributes:
         messages: Conversation messages accumulated via the ``add_messages`` reducer.
         context: Arbitrary context data available to all nodes.
+        requested_tiers: Build tiers requested for the current run (e.g. ``["Home", "Gaming"]``).
+        inventory: Raw inventory items fetched from the aiecommerce API.
+        component_specs: Cached product specs keyed by SKU.
+        completed_builds: Successfully assembled tower builds for the current run.
+        current_tier: The tier currently being processed by the Inventory Architect.
+        errors: Accumulated error messages from any node in the graph.
+        run_status: Literal["pending", "running", "completed", "failed"] indicating the
+            overall status of the current run.
     """
 
+    # ── Core fields (backward-compatible) ────────────────────────────────────
     messages: Annotated[list[dict[str, str]], add_messages] = Field(default_factory=list)
     context: dict[str, object] = Field(default_factory=dict)
+
+    # ── Phase 1: Tower Assembly ───────────────────────────────────────────────
+    requested_tiers: list[str] = Field(default_factory=list)
+    inventory: list[dict[str, object]] = Field(default_factory=list)
+    component_specs: dict[str, dict[str, object]] = Field(default_factory=dict)
+    completed_builds: list[dict[str, object]] = Field(default_factory=list)
+    current_tier: str = ""
+    errors: list[str] = Field(default_factory=list)
+    # Valid values: "pending" | "running" | "completed" | "failed"
+    run_status: Literal["pending", "running", "completed", "failed"] = "pending"
