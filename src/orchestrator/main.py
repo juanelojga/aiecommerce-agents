@@ -7,12 +7,14 @@ import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from orchestrator.api.routes.health import router as health_router
 from orchestrator.core.config import get_settings
 from orchestrator.core.database import create_tables
+from orchestrator.core.exceptions import OrchestratorError
 from orchestrator.core.logging import setup_logging
 
 logger = logging.getLogger(__name__)
@@ -49,6 +51,12 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # ── Exception handlers ───────────────────────────────────────────────
+    @application.exception_handler(OrchestratorError)
+    async def orchestrator_error_handler(_: Request, exc: OrchestratorError) -> JSONResponse:
+        """Return a JSON ``{"detail": "..."}`` response for OrchestratorError subtypes."""
+        return JSONResponse(status_code=exc.STATUS_CODE, content={"detail": exc.message})
 
     # ── Routers ─────────────────────────────────────────────────────────
     application.include_router(health_router)
