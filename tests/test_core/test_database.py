@@ -5,14 +5,14 @@ from unittest.mock import AsyncMock
 
 import pytest
 from pytest_mock import MockerFixture
-from sqlalchemy import String
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncEngine
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.ext.asyncio import async_sessionmaker
-from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy.orm import Mapped
-from sqlalchemy.orm import mapped_column
+from sqlalchemy import String, text
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
+from sqlalchemy.orm import Mapped, mapped_column
 
 import orchestrator.main as main_module
 from orchestrator.core import database
@@ -20,7 +20,7 @@ from orchestrator.models.base import Base
 
 
 class DatabaseTestModel(Base):
-    """SQLAlchemy model used to verify schema creation in tests."""
+    """Minimal model used only to validate Base metadata schema creation."""
 
     __tablename__ = "_database_test_model"
 
@@ -29,7 +29,7 @@ class DatabaseTestModel(Base):
 
 
 @pytest.fixture
-async def sqlite_engine() -> AsyncGenerator[AsyncEngine, None]:
+async def sqlite_engine() -> AsyncGenerator[AsyncEngine]:
     """Yield an in-memory SQLite async engine for database tests."""
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
     try:
