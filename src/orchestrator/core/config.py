@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "aiecommerce-agents"
     DEBUG: bool = False
     API_PORT: int = 8000
+    API_KEY: str = ""
 
     # ── Database (Local Registry) ───────────────────────────────────────
     DATABASE_URL: str = "postgresql+asyncpg://orchestrator:orchestrator@localhost:5432/orchestrator"
