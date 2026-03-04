@@ -105,7 +105,7 @@ The system can fetch inventory, assemble valid unique towers for all 3 tiers, st
 | ------------------------------------------ | --------------------------------------------------------- |
 | `src/orchestrator/main.py`                 | Add lifespan for DB init, include tower + trigger routers |
 | `src/orchestrator/core/config.py`          | Add `ASSEMBLY_MARGIN_PCT`, `API_KEY` settings             |
-| `src/orchestrator/services/aiecommerce.py` | Add `list_products()`, `get_product_detail()` methods      |
+| `src/orchestrator/services/aiecommerce.py` | Add `list_products()`, `get_product_detail()` methods     |
 | `src/orchestrator/graph/state.py`          | Extend `GraphState` with tower assembly fields            |
 | `src/orchestrator/models/__init__.py`      | Re-export all models                                      |
 | `tests/conftest.py`                        | Add DB session fixtures, mock service fixtures            |

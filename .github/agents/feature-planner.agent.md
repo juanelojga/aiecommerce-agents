@@ -137,18 +137,18 @@ The plan document **must** contain these sections:
 
 Numbered, ordered tasks. **Each task** must contain:
 
-| Field                   | Description                                                            |
-| ----------------------- | ---------------------------------------------------------------------- |
-| **Title**               | Action-oriented (e.g., "Create Inventory service client")              |
-| **Description**         | What to build and why                                                  |
+| Field                   | Description                                                          |
+| ----------------------- | -------------------------------------------------------------------- |
+| **Title**               | Action-oriented (e.g., "Create Inventory service client")            |
+| **Description**         | What to build and why                                                |
 | **Files to create**     | Full paths (e.g., `src/orchestrator/services/product.py`)            |
-| **Files to modify**     | Full paths with description of changes                                 |
-| **Signatures**          | Function/class signatures with type annotations                        |
-| **Dependencies**        | Which other tasks must be completed first (by task number)             |
+| **Files to modify**     | Full paths with description of changes                               |
+| **Signatures**          | Function/class signatures with type annotations                      |
+| **Dependencies**        | Which other tasks must be completed first (by task number)           |
 | **Test file**           | Full path to test file (e.g., `tests/test_services/test_product.py`) |
-| **Test cases**          | Specific test function names and what they verify                      |
-| **Acceptance criteria** | Checkboxes with specific, verifiable conditions                        |
-| **Complexity**          | S (< 2 hrs), M (2-8 hrs), or L (> 8 hrs)                               |
+| **Test cases**          | Specific test function names and what they verify                    |
+| **Acceptance criteria** | Checkboxes with specific, verifiable conditions                      |
+| **Complexity**          | S (< 2 hrs), M (2-8 hrs), or L (> 8 hrs)                             |
 
 **Task ordering rules:**
 
