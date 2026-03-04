@@ -1,4 +1,4 @@
-"""Tests for AIEcommerceClient inventory and product-spec methods."""
+"""Tests for AIEcommerceClient product list and product detail methods."""
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -7,7 +7,7 @@ import pytest
 
 from orchestrator.core.config import Settings
 from orchestrator.core.exceptions import APIClientError
-from orchestrator.schemas.inventory import InventoryItem, InventoryResponse, ProductSpecs
+from orchestrator.schemas.product import ProductDetail, ProductListItem, ProductListResponse
 from orchestrator.services.aiecommerce import _BACKOFF_BASE, _MAX_RETRIES, AIEcommerceClient
 
 # ---------------------------------------------------------------------------
@@ -16,24 +16,28 @@ from orchestrator.services.aiecommerce import _BACKOFF_BASE, _MAX_RETRIES, AIEco
 
 VALID_ITEM: dict[str, object] = {
     "id": 1,
+    "code": "PROD-001",
     "sku": "CPU-001",
-    "name": "Ryzen 9 7950X",
+    "normalized_name": "Ryzen 9 7950X",
     "category": "cpu",
     "price": 699.99,
-    "available_quantity": 5,
     "is_active": True,
+    "total_available_stock": 5,
 }
 
-VALID_INVENTORY_PAYLOAD: dict[str, object] = {
+VALID_LIST_PAYLOAD: dict[str, object] = {
     "count": 1,
     "results": [VALID_ITEM],
 }
 
-VALID_SPECS_PAYLOAD: dict[str, object] = {
+VALID_DETAIL_PAYLOAD: dict[str, object] = {
     "id": 1,
+    "code": "PROD-001",
     "sku": "CPU-001",
-    "socket": "AM5",
-    "tdp": 170,
+    "normalized_name": "Ryzen 9 7950X",
+    "price": 699.99,
+    "category": "cpu",
+    "specs": {"socket": "AM5", "tdp": 170},
 }
 
 
@@ -64,17 +68,17 @@ def _make_response(status_code: int, json_data: object) -> MagicMock:
 
 
 # ---------------------------------------------------------------------------
-# get_inventory
+# list_products
 # ---------------------------------------------------------------------------
 
 
-class TestGetInventory:
-    """Tests for AIEcommerceClient.get_inventory."""
+class TestListProducts:
+    """Tests for AIEcommerceClient.list_products."""
 
     @pytest.mark.asyncio
-    async def test_get_inventory_success(self, client: AIEcommerceClient) -> None:
-        """Returns a typed InventoryResponse on a successful API call."""
-        mock_resp = _make_response(200, VALID_INVENTORY_PAYLOAD)
+    async def test_list_products_success(self, client: AIEcommerceClient) -> None:
+        """Returns a typed ProductListResponse on a successful API call."""
+        mock_resp = _make_response(200, VALID_LIST_PAYLOAD)
         mock_get = AsyncMock(return_value=mock_resp)
 
         with patch("httpx.AsyncClient") as mock_cls:
@@ -83,18 +87,18 @@ class TestGetInventory:
             mock_cls.return_value.__aenter__ = AsyncMock(return_value=mock_http)
             mock_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
-            result = await client.get_inventory()
+            result = await client.list_products()
 
-        assert isinstance(result, InventoryResponse)
+        assert isinstance(result, ProductListResponse)
         assert result.count == 1
         assert len(result.results) == 1
-        assert isinstance(result.results[0], InventoryItem)
+        assert isinstance(result.results[0], ProductListItem)
         assert result.results[0].sku == "CPU-001"
 
     @pytest.mark.asyncio
-    async def test_get_inventory_with_category_filter(self, client: AIEcommerceClient) -> None:
+    async def test_list_products_with_category_filter(self, client: AIEcommerceClient) -> None:
         """Passes category as a query parameter when provided."""
-        mock_resp = _make_response(200, VALID_INVENTORY_PAYLOAD)
+        mock_resp = _make_response(200, VALID_LIST_PAYLOAD)
         mock_get = AsyncMock(return_value=mock_resp)
 
         with patch("httpx.AsyncClient") as mock_cls:
@@ -103,16 +107,16 @@ class TestGetInventory:
             mock_cls.return_value.__aenter__ = AsyncMock(return_value=mock_http)
             mock_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
-            await client.get_inventory(category="cpu")
+            await client.list_products(category="cpu")
 
         _, call_kwargs = mock_get.call_args
         params = call_kwargs.get("params", {})
         assert params.get("category") == "cpu"
 
     @pytest.mark.asyncio
-    async def test_get_inventory_active_and_stock_filters(self, client: AIEcommerceClient) -> None:
-        """Passes is_active and in_stock query params when flags are True."""
-        mock_resp = _make_response(200, VALID_INVENTORY_PAYLOAD)
+    async def test_list_products_active_and_stock_filters(self, client: AIEcommerceClient) -> None:
+        """Passes is_active and has_stock query params when flags are True."""
+        mock_resp = _make_response(200, VALID_LIST_PAYLOAD)
         mock_get = AsyncMock(return_value=mock_resp)
 
         with patch("httpx.AsyncClient") as mock_cls:
@@ -121,17 +125,17 @@ class TestGetInventory:
             mock_cls.return_value.__aenter__ = AsyncMock(return_value=mock_http)
             mock_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
-            await client.get_inventory(active_only=True, in_stock_only=True)
+            await client.list_products(active_only=True, has_stock=True)
 
         _, call_kwargs = mock_get.call_args
         params = call_kwargs.get("params", {})
         assert params.get("is_active") == "true"
-        assert params.get("in_stock") == "true"
+        assert params.get("has_stock") == "true"
 
     @pytest.mark.asyncio
-    async def test_get_inventory_no_filters_when_disabled(self, client: AIEcommerceClient) -> None:
-        """Omits is_active and in_stock params when the flags are False."""
-        mock_resp = _make_response(200, VALID_INVENTORY_PAYLOAD)
+    async def test_list_products_no_filters_when_disabled(self, client: AIEcommerceClient) -> None:
+        """Omits is_active and has_stock params when the flags are False."""
+        mock_resp = _make_response(200, VALID_LIST_PAYLOAD)
         mock_get = AsyncMock(return_value=mock_resp)
 
         with patch("httpx.AsyncClient") as mock_cls:
@@ -140,16 +144,16 @@ class TestGetInventory:
             mock_cls.return_value.__aenter__ = AsyncMock(return_value=mock_http)
             mock_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
-            await client.get_inventory(active_only=False, in_stock_only=False)
+            await client.list_products(active_only=False, has_stock=False)
 
         _, call_kwargs = mock_get.call_args
-        # params should be None (no filters) or not contain is_active/in_stock
+        # params should be None (no filters) or not contain is_active/has_stock
         params = call_kwargs.get("params") or {}
         assert "is_active" not in params
-        assert "in_stock" not in params
+        assert "has_stock" not in params
 
     @pytest.mark.asyncio
-    async def test_get_inventory_api_error_raises(self, client: AIEcommerceClient) -> None:
+    async def test_list_products_api_error_raises(self, client: AIEcommerceClient) -> None:
         """Wraps 5xx HTTP errors in APIClientError after exhausting retries."""
         mock_resp = _make_response(500, {})
         mock_get = AsyncMock(return_value=mock_resp)
@@ -164,16 +168,16 @@ class TestGetInventory:
             mock_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
             with pytest.raises(APIClientError):
-                await client.get_inventory()
+                await client.list_products()
 
         # asyncio.sleep should have been called for each retry
         assert mock_sleep.call_count == _MAX_RETRIES
 
     @pytest.mark.asyncio
-    async def test_get_inventory_retry_on_failure(self, client: AIEcommerceClient) -> None:
+    async def test_list_products_retry_on_failure(self, client: AIEcommerceClient) -> None:
         """Retries with exponential backoff and succeeds on the final attempt."""
         fail_resp = _make_response(500, {})
-        ok_resp = _make_response(200, VALID_INVENTORY_PAYLOAD)
+        ok_resp = _make_response(200, VALID_LIST_PAYLOAD)
 
         # Fail twice, then succeed on third call
         mock_get = AsyncMock(side_effect=[fail_resp, fail_resp, ok_resp])
@@ -187,9 +191,9 @@ class TestGetInventory:
             mock_cls.return_value.__aenter__ = AsyncMock(return_value=mock_http)
             mock_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
-            result = await client.get_inventory()
+            result = await client.list_products()
 
-        assert isinstance(result, InventoryResponse)
+        assert isinstance(result, ProductListResponse)
         assert mock_get.call_count == 3
         # Verify backoff delays: 5s, 10s
         assert mock_sleep.call_count == 2
@@ -198,17 +202,17 @@ class TestGetInventory:
 
 
 # ---------------------------------------------------------------------------
-# get_product_specs
+# get_product_detail
 # ---------------------------------------------------------------------------
 
 
-class TestGetProductSpecs:
-    """Tests for AIEcommerceClient.get_product_specs."""
+class TestGetProductDetail:
+    """Tests for AIEcommerceClient.get_product_detail."""
 
     @pytest.mark.asyncio
-    async def test_get_product_specs_success(self, client: AIEcommerceClient) -> None:
-        """Returns a typed ProductSpecs on a successful API call."""
-        mock_resp = _make_response(200, VALID_SPECS_PAYLOAD)
+    async def test_get_product_detail_success(self, client: AIEcommerceClient) -> None:
+        """Returns a typed ProductDetail on a successful API call."""
+        mock_resp = _make_response(200, VALID_DETAIL_PAYLOAD)
         mock_get = AsyncMock(return_value=mock_resp)
 
         with patch("httpx.AsyncClient") as mock_cls:
@@ -217,17 +221,17 @@ class TestGetProductSpecs:
             mock_cls.return_value.__aenter__ = AsyncMock(return_value=mock_http)
             mock_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
-            result = await client.get_product_specs(1)
+            result = await client.get_product_detail(1)
 
-        assert isinstance(result, ProductSpecs)
+        assert isinstance(result, ProductDetail)
         assert result.id == 1
         assert result.sku == "CPU-001"
-        assert result.socket == "AM5"
+        assert result.specs == {"socket": "AM5", "tdp": 170}
 
     @pytest.mark.asyncio
-    async def test_get_product_specs_calls_correct_path(self, client: AIEcommerceClient) -> None:
+    async def test_get_product_detail_calls_correct_path(self, client: AIEcommerceClient) -> None:
         """Calls the correct API path with the given product_id."""
-        mock_resp = _make_response(200, VALID_SPECS_PAYLOAD)
+        mock_resp = _make_response(200, VALID_DETAIL_PAYLOAD)
         mock_get = AsyncMock(return_value=mock_resp)
 
         with patch("httpx.AsyncClient") as mock_cls:
@@ -236,13 +240,13 @@ class TestGetProductSpecs:
             mock_cls.return_value.__aenter__ = AsyncMock(return_value=mock_http)
             mock_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
-            await client.get_product_specs(42)
+            await client.get_product_detail(42)
 
         call_args, _ = mock_get.call_args
-        assert call_args[0] == "/api/v1/agent/product/42/specs/"
+        assert call_args[0] == "/api/v1/products/42/"
 
     @pytest.mark.asyncio
-    async def test_get_product_specs_not_found(self, client: AIEcommerceClient) -> None:
+    async def test_get_product_detail_not_found(self, client: AIEcommerceClient) -> None:
         """404 response raises APIClientError immediately (no retry)."""
         mock_resp = _make_response(404, {})
         mock_get = AsyncMock(return_value=mock_resp)
@@ -257,17 +261,19 @@ class TestGetProductSpecs:
             mock_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
             with pytest.raises(APIClientError):
-                await client.get_product_specs(999)
+                await client.get_product_detail(999)
 
         # 404 is a client error — no retries, so sleep must not be called
         mock_sleep.assert_not_called()
         assert mock_get.call_count == 1
 
     @pytest.mark.asyncio
-    async def test_get_product_specs_network_error_retries(self, client: AIEcommerceClient) -> None:
+    async def test_get_product_detail_network_error_retries(
+        self, client: AIEcommerceClient
+    ) -> None:
         """Network errors are retried up to _MAX_RETRIES times."""
         network_error = httpx.ConnectError("connection refused")
-        ok_resp = _make_response(200, VALID_SPECS_PAYLOAD)
+        ok_resp = _make_response(200, VALID_DETAIL_PAYLOAD)
 
         mock_get = AsyncMock(side_effect=[network_error, ok_resp])
 
@@ -280,8 +286,8 @@ class TestGetProductSpecs:
             mock_cls.return_value.__aenter__ = AsyncMock(return_value=mock_http)
             mock_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
-            result = await client.get_product_specs(1)
+            result = await client.get_product_detail(1)
 
-        assert isinstance(result, ProductSpecs)
+        assert isinstance(result, ProductDetail)
         assert mock_get.call_count == 2
         assert mock_sleep.call_count == 1

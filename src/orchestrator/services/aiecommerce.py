@@ -11,7 +11,7 @@ import httpx
 
 from orchestrator.core.config import Settings
 from orchestrator.core.exceptions import APIClientError
-from orchestrator.schemas.inventory import InventoryResponse, ProductSpecs
+from orchestrator.schemas.product import ProductDetail, ProductListResponse
 
 logger = logging.getLogger(__name__)
 
@@ -100,25 +100,25 @@ class AIEcommerceClient:
 
         raise APIClientError(str(last_exc)) from last_exc
 
-    async def get_inventory(
+    async def list_products(
         self,
         category: str | None = None,
         active_only: bool = True,
-        in_stock_only: bool = True,
-    ) -> InventoryResponse:
-        """Fetch filtered inventory from the aiecommerce API.
+        has_stock: bool = True,
+    ) -> ProductListResponse:
+        """Fetch a paginated product list from the aiecommerce API.
 
-        Calls ``GET /api/v1/agent/inventory/`` with optional query parameters
+        Calls ``GET /api/v1/products/`` with optional query parameters
         to filter results by category, active status, and stock availability.
 
         Args:
             category: Filter by component category (e.g. ``"cpu"``). When
                 ``None`` no category filter is applied.
             active_only: When ``True`` only active items are returned.
-            in_stock_only: When ``True`` only items with stock > 0 are returned.
+            has_stock: When ``True`` only items with stock > 0 are returned.
 
         Returns:
-            Typed :class:`InventoryResponse` containing a count and item list.
+            Typed :class:`ProductListResponse` containing paginated product list.
 
         Raises:
             APIClientError: If the API call fails after all retries.
@@ -128,29 +128,29 @@ class AIEcommerceClient:
             params["category"] = category
         if active_only:
             params["is_active"] = "true"
-        if in_stock_only:
-            params["in_stock"] = "true"
+        if has_stock:
+            params["has_stock"] = "true"
 
         data = await self._get_with_retry(
-            "/api/v1/agent/inventory/",
+            "/api/v1/products/",
             params=params if params else None,
         )
-        return InventoryResponse.model_validate(data)
+        return ProductListResponse.model_validate(data)
 
-    async def get_product_specs(self, product_id: int) -> ProductSpecs:
-        """Fetch deep technical specifications for a product.
+    async def get_product_detail(self, product_id: int) -> ProductDetail:
+        """Fetch full product detail including specs, images, and stock.
 
-        Calls ``GET /api/v1/agent/product/{product_id}/specs/``.
+        Calls ``GET /api/v1/products/{product_id}/``.
 
         Args:
             product_id: The product ID in the aiecommerce system.
 
         Returns:
-            Typed :class:`ProductSpecs` for the given product.
+            Typed :class:`ProductDetail` for the given product.
 
         Raises:
             APIClientError: If the API call fails after all retries or the
                 product is not found (404).
         """
-        data = await self._get_with_retry(f"/api/v1/agent/product/{product_id}/specs/")
-        return ProductSpecs.model_validate(data)
+        data = await self._get_with_retry(f"/api/v1/products/{product_id}/")
+        return ProductDetail.model_validate(data)
