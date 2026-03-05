@@ -213,7 +213,7 @@ def _make_session_mock() -> tuple[Any, Any, Any]:
     return mock_session, mock_bundle_repo, mock_audit_repo
 
 
-def _make_completed_build(
+def _make_completed_tower_build(
     tier: str = "Home",
     bundle_hash: str = "a" * 64,
     total_price: float = 599.99,
@@ -252,6 +252,19 @@ def _build_node_mocks(
     _, mock_bundle_repo, mock_audit_repo = _make_session_mock()
 
     return mock_api, mock_bundle_repo, mock_audit_repo
+
+
+def _extract_peripheral_skus(bundle: dict[str, object]) -> dict[str, str]:
+    """Extract a category → SKU mapping from a serialised bundle dict.
+
+    Args:
+        bundle: A serialised BundleBuild dict.
+
+    Returns:
+        Mapping of peripheral category value to its SKU.
+    """
+    peripherals: list[dict[str, object]] = bundle["peripherals"]  # type: ignore[assignment]
+    return {str(p["category"]): str(p["sku"]) for p in peripherals}
 
 
 # ---------------------------------------------------------------------------
@@ -313,7 +326,7 @@ async def test_bundle_creator_home_tier() -> None:
     inventory, specs_cache = _build_peripheral_inventory()
     mock_api, mock_bundle_repo, mock_audit_repo = _build_node_mocks(inventory, specs_cache)
 
-    state = GraphState(completed_builds=[_make_completed_build("Home")])
+    state = GraphState(completed_builds=[_make_completed_tower_build("Home")])
 
     with (
         patch(
@@ -338,7 +351,7 @@ async def test_bundle_creator_home_tier() -> None:
     bundle = result["completed_bundles"][0]  # type: ignore[index]
     assert bundle["tier"] == "Home"
     # Home tier picks cheapest: KB-BASIC (25), MOUSE-BASIC (15), MON-BASIC (150).
-    peripheral_skus = {p["category"]: p["sku"] for p in bundle["peripherals"]}
+    peripheral_skus = _extract_peripheral_skus(bundle)
     assert peripheral_skus["keyboard"] == "KB-BASIC"
     assert peripheral_skus["mouse"] == "MOUSE-BASIC"
     assert peripheral_skus["monitor"] == "MON-BASIC"
@@ -352,7 +365,9 @@ async def test_bundle_creator_business_tier() -> None:
     inventory, specs_cache = _build_peripheral_inventory()
     mock_api, mock_bundle_repo, mock_audit_repo = _build_node_mocks(inventory, specs_cache)
 
-    state = GraphState(completed_builds=[_make_completed_build("Business", bundle_hash="b" * 64)])
+    state = GraphState(
+        completed_builds=[_make_completed_tower_build("Business", bundle_hash="b" * 64)]
+    )
 
     with (
         patch(
@@ -376,7 +391,7 @@ async def test_bundle_creator_business_tier() -> None:
     bundle = result["completed_bundles"][0]  # type: ignore[index]
     assert bundle["tier"] == "Business"
     # Business tier picks median: KB-ERGO (75), MOUSE-ERGO (50), MON-STD (350).
-    peripheral_skus = {p["category"]: p["sku"] for p in bundle["peripherals"]}
+    peripheral_skus = _extract_peripheral_skus(bundle)
     assert peripheral_skus["keyboard"] == "KB-ERGO"
     assert peripheral_skus["mouse"] == "MOUSE-ERGO"
     assert peripheral_skus["monitor"] == "MON-STD"
@@ -388,7 +403,9 @@ async def test_bundle_creator_gaming_tier() -> None:
     inventory, specs_cache = _build_peripheral_inventory()
     mock_api, mock_bundle_repo, mock_audit_repo = _build_node_mocks(inventory, specs_cache)
 
-    state = GraphState(completed_builds=[_make_completed_build("Gaming", bundle_hash="c" * 64)])
+    state = GraphState(
+        completed_builds=[_make_completed_tower_build("Gaming", bundle_hash="c" * 64)]
+    )
 
     with (
         patch(
@@ -413,7 +430,7 @@ async def test_bundle_creator_gaming_tier() -> None:
     assert bundle["tier"] == "Gaming"
     # Gaming tier picks premium: KB-MECH (150), MOUSE-GAMING (120),
     # MON-144HZ (600), SPK-PREMIUM (200).
-    peripheral_skus = {p["category"]: p["sku"] for p in bundle["peripherals"]}
+    peripheral_skus = _extract_peripheral_skus(bundle)
     assert peripheral_skus["keyboard"] == "KB-MECH"
     assert peripheral_skus["mouse"] == "MOUSE-GAMING"
     assert peripheral_skus["monitor"] == "MON-144HZ"
@@ -437,7 +454,7 @@ async def test_bundle_creator_persists_bundle() -> None:
     inventory, specs_cache = _build_peripheral_inventory()
     mock_api, mock_bundle_repo, mock_audit_repo = _build_node_mocks(inventory, specs_cache)
 
-    state = GraphState(completed_builds=[_make_completed_build("Home")])
+    state = GraphState(completed_builds=[_make_completed_tower_build("Home")])
 
     with (
         patch(
@@ -467,7 +484,7 @@ async def test_bundle_creator_records_audit() -> None:
     inventory, specs_cache = _build_peripheral_inventory()
     mock_api, mock_bundle_repo, mock_audit_repo = _build_node_mocks(inventory, specs_cache)
 
-    state = GraphState(completed_builds=[_make_completed_build("Home")])
+    state = GraphState(completed_builds=[_make_completed_tower_build("Home")])
 
     with (
         patch(
@@ -506,7 +523,7 @@ async def test_bundle_creator_missing_peripheral_error() -> None:
 
     mock_api, mock_bundle_repo, mock_audit_repo = _build_node_mocks(inventory, specs_cache)
 
-    state = GraphState(completed_builds=[_make_completed_build("Home")])
+    state = GraphState(completed_builds=[_make_completed_tower_build("Home")])
 
     with (
         patch(
@@ -542,8 +559,8 @@ async def test_bundle_creator_multiple_tiers() -> None:
 
     state = GraphState(
         completed_builds=[
-            _make_completed_build("Home", bundle_hash="a" * 64),
-            _make_completed_build("Gaming", bundle_hash="b" * 64),
+            _make_completed_tower_build("Home", bundle_hash="a" * 64),
+            _make_completed_tower_build("Gaming", bundle_hash="b" * 64),
         ]
     )
 
@@ -585,7 +602,7 @@ async def test_bundle_creator_api_error() -> None:
     mock_api = MagicMock()
     mock_api.list_products = AsyncMock(side_effect=APIClientError("Connection refused"))
 
-    state = GraphState(completed_builds=[_make_completed_build("Home")])
+    state = GraphState(completed_builds=[_make_completed_tower_build("Home")])
 
     with (
         patch(
