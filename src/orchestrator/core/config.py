@@ -44,8 +44,10 @@ class Settings(BaseSettings):
     MERCADOLIBRE_CLIENT_SECRET: str = ""
     MERCADOLIBRE_REDIRECT_URI: str = "https://localhost:8000/auth/callback"
 
-    # ── OpenAI (LangChain / LangGraph) ──────────────────────────────────
-    OPENAI_API_KEY: str = ""
+    # ── OpenRouter (LangChain / LangGraph) ────────────────────────────────────
+    OPENROUTER_API_KEY: str = ""
+    OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
+    OPENROUTER_MODEL: str = "openai/gpt-4o-mini"
 
 
 @lru_cache(maxsize=1)

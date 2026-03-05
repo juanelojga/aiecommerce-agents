@@ -135,7 +135,7 @@ Main settings are loaded from environment variables in `src/orchestrator/core/co
 - `DATABASE_URL`, `POSTGRES_*`
 - `AIECOMMERCE_API_URL`, `AIECOMMERCE_API_KEY`
 - `MERCADOLIBRE_*`
-- `OPENAI_API_KEY`
+- `OPENROUTER_API_KEY`, `OPENROUTER_BASE_URL`, `OPENROUTER_MODEL`
 
 Start from `.env.example` for defaults and placeholders.
 
