@@ -13,6 +13,7 @@ from fastapi.responses import JSONResponse
 
 from orchestrator.api.routes.health import router as health_router
 from orchestrator.api.routes.towers import router as towers_router
+from orchestrator.api.routes.triggers import router as triggers_router
 from orchestrator.core.config import get_settings
 from orchestrator.core.database import create_tables
 from orchestrator.core.exceptions import OrchestratorError
@@ -62,6 +63,7 @@ def create_app() -> FastAPI:
     # ── Routers ─────────────────────────────────────────────────────────
     application.include_router(health_router)
     application.include_router(towers_router)
+    application.include_router(triggers_router)
 
     logger.info("Application started — %s", settings.APP_NAME)
     return application
