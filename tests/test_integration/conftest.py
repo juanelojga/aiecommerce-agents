@@ -11,7 +11,7 @@ inventory-architect node are immediately visible to subsequent API requests.
 """
 
 from collections.abc import AsyncGenerator
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import httpx
 import pytest
@@ -104,3 +104,19 @@ async def integration_client(sqlite_engine: AsyncEngine) -> AsyncGenerator[httpx
     finally:
         app.dependency_overrides.pop(get_db_session, None)
         app.dependency_overrides.pop(get_settings, None)
+
+
+@pytest.fixture
+def mock_bundle_creator_node() -> AsyncMock:
+    """Return an ``AsyncMock`` that replaces ``bundle_creator_node`` in the workflow.
+
+    The mock returns a successful no-op result so that Phase 1 tower-assembly
+    integration tests can run without requiring peripheral inventory data.
+    """
+    return AsyncMock(
+        return_value={
+            "completed_bundles": [],
+            "errors": [],
+            "run_status": "completed",
+        },
+    )
