@@ -11,6 +11,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from orchestrator.api.routes.bundles import router as bundles_router
 from orchestrator.api.routes.health import router as health_router
 from orchestrator.api.routes.towers import router as towers_router
 from orchestrator.api.routes.triggers import router as triggers_router
@@ -63,6 +64,7 @@ def create_app() -> FastAPI:
     # ── Routers ─────────────────────────────────────────────────────────
     application.include_router(health_router)
     application.include_router(towers_router)
+    application.include_router(bundles_router)
     application.include_router(triggers_router)
 
     logger.info("Application started — %s", settings.APP_NAME)

@@ -74,3 +74,12 @@ class TowerNotFoundError(OrchestratorError):
     """
 
     STATUS_CODE: int = HTTPStatus.NOT_FOUND.value
+
+
+class BundleNotFoundError(OrchestratorError):
+    """Requested bundle does not exist in the registry.
+
+    Raised when a bundle lookup by identifier returns no result.
+    """
+
+    STATUS_CODE: int = HTTPStatus.NOT_FOUND.value
