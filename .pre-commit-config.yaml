@@ -33,4 +33,8 @@ repos:
           - sqlalchemy[asyncio]
           - pytest
           - pytest-asyncio
+          - langchain-core
+          - langchain-openai
+          - langgraph
+          - pytest-mock
         args: [--strict]

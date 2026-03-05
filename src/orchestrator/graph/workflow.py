@@ -86,4 +86,4 @@ def _route_after_assembly(state: GraphState) -> str:
     logger.debug("Routing after assembly: run_status=%s", state.run_status)
     if state.run_status == "completed" and state.completed_builds:
         return _NODE_BUNDLE_CREATOR
-    return END
+    return str(END)

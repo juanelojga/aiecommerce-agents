@@ -307,19 +307,21 @@ docker compose up --build
 
 ## Environment variable reference
 
-| Variable                     | Default                                | Used by        | Description                            |
-| ---------------------------- | -------------------------------------- | -------------- | -------------------------------------- |
-| `APP_NAME`                   | `aiecommerce-agents`                   | api, sentinel  | Application display name               |
-| `DEBUG`                      | `false`                                | api, sentinel  | Enable debug mode / verbose logging    |
-| `API_PORT`                   | `8000`                                 | docker-compose | Host port for the FastAPI server       |
-| `POSTGRES_PORT`              | `5432`                                 | docker-compose | Host port for PostgreSQL               |
-| `POSTGRES_USER`              | `orchestrator`                         | db             | PostgreSQL superuser name              |
-| `POSTGRES_PASSWORD`          | `orchestrator`                         | db             | PostgreSQL superuser password          |
-| `POSTGRES_DB`                | `orchestrator`                         | db             | PostgreSQL database name               |
-| `DATABASE_URL`               | `postgresql+asyncpg://...@db:5432/...` | api, sentinel  | SQLAlchemy async connection string     |
-| `AIECOMMERCE_API_URL`        | `https://api.aiecommerce.example.com`  | api, sentinel  | Base URL for the aiecommerce REST API  |
-| `AIECOMMERCE_API_KEY`        | _(empty)_                              | api, sentinel  | Bearer token for aiecommerce API       |
-| `MERCADOLIBRE_CLIENT_ID`     | _(empty)_                              | api            | MercadoLibre OAuth2 client ID          |
-| `MERCADOLIBRE_CLIENT_SECRET` | _(empty)_                              | api            | MercadoLibre OAuth2 client secret      |
-| `MERCADOLIBRE_REDIRECT_URI`  | `https://localhost:8000/auth/callback` | api            | MercadoLibre OAuth2 redirect URI       |
-| `OPENAI_API_KEY`             | _(empty)_                              | api, sentinel  | OpenAI API key for LangChain/LangGraph |
+| Variable                     | Default                                | Used by        | Description                                |
+| ---------------------------- | -------------------------------------- | -------------- | ------------------------------------------ |
+| `APP_NAME`                   | `aiecommerce-agents`                   | api, sentinel  | Application display name                   |
+| `DEBUG`                      | `false`                                | api, sentinel  | Enable debug mode / verbose logging        |
+| `API_PORT`                   | `8000`                                 | docker-compose | Host port for the FastAPI server           |
+| `POSTGRES_PORT`              | `5432`                                 | docker-compose | Host port for PostgreSQL                   |
+| `POSTGRES_USER`              | `orchestrator`                         | db             | PostgreSQL superuser name                  |
+| `POSTGRES_PASSWORD`          | `orchestrator`                         | db             | PostgreSQL superuser password              |
+| `POSTGRES_DB`                | `orchestrator`                         | db             | PostgreSQL database name                   |
+| `DATABASE_URL`               | `postgresql+asyncpg://...@db:5432/...` | api, sentinel  | SQLAlchemy async connection string         |
+| `AIECOMMERCE_API_URL`        | `https://api.aiecommerce.example.com`  | api, sentinel  | Base URL for the aiecommerce REST API      |
+| `AIECOMMERCE_API_KEY`        | _(empty)_                              | api, sentinel  | Bearer token for aiecommerce API           |
+| `MERCADOLIBRE_CLIENT_ID`     | _(empty)_                              | api            | MercadoLibre OAuth2 client ID              |
+| `MERCADOLIBRE_CLIENT_SECRET` | _(empty)_                              | api            | MercadoLibre OAuth2 client secret          |
+| `MERCADOLIBRE_REDIRECT_URI`  | `https://localhost:8000/auth/callback` | api            | MercadoLibre OAuth2 redirect URI           |
+| `OPENROUTER_API_KEY`         | _(empty)_                              | api, sentinel  | OpenRouter API key for LangChain/LangGraph |
+| `OPENROUTER_BASE_URL`        | `https://openrouter.ai/api/v1`         | api, sentinel  | OpenRouter API base URL                    |
+| `OPENROUTER_MODEL`           | `openai/gpt-4o-mini`                   | api, sentinel  | Model name to use via OpenRouter           |
