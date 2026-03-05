@@ -536,6 +536,7 @@ def _make_get_detail_side_effect(
 @pytest.mark.asyncio
 async def test_full_assembly_run_three_tiers(
     integration_client: httpx.AsyncClient,
+    mock_bundle_creator_node: AsyncMock,
 ) -> None:
     """Full pipeline exercised: all three tiers produce stored towers.
 
@@ -559,13 +560,7 @@ async def test_full_assembly_run_three_tiers(
         ) as mock_detail,
         patch(
             "orchestrator.graph.workflow.bundle_creator_node",
-            new=AsyncMock(
-                return_value={
-                    "completed_bundles": [],
-                    "errors": [],
-                    "run_status": "completed",
-                },
-            ),
+            new=mock_bundle_creator_node,
         ),
     ):
         mock_list.side_effect = _make_list_products_side_effect(_COMPATIBLE_INVENTORY)
@@ -591,6 +586,7 @@ async def test_full_assembly_run_three_tiers(
 @pytest.mark.asyncio
 async def test_assembly_run_produces_unique_hashes(
     integration_client: httpx.AsyncClient,
+    mock_bundle_creator_node: AsyncMock,
 ) -> None:
     """Two consecutive runs produce towers with no duplicate hashes.
 
@@ -612,13 +608,7 @@ async def test_assembly_run_produces_unique_hashes(
         ) as mock_detail,
         patch(
             "orchestrator.graph.workflow.bundle_creator_node",
-            new=AsyncMock(
-                return_value={
-                    "completed_bundles": [],
-                    "errors": [],
-                    "run_status": "completed",
-                },
-            ),
+            new=mock_bundle_creator_node,
         ),
     ):
         mock_list.side_effect = _make_list_products_side_effect(_COMPATIBLE_INVENTORY)
@@ -704,6 +694,7 @@ async def test_assembly_run_with_incompatible_inventory(
 @pytest.mark.asyncio
 async def test_towers_retrievable_after_run(
     integration_client: httpx.AsyncClient,
+    mock_bundle_creator_node: AsyncMock,
 ) -> None:
     """Towers created by the pipeline are immediately visible through the listing API.
 
@@ -723,13 +714,7 @@ async def test_towers_retrievable_after_run(
         ) as mock_detail,
         patch(
             "orchestrator.graph.workflow.bundle_creator_node",
-            new=AsyncMock(
-                return_value={
-                    "completed_bundles": [],
-                    "errors": [],
-                    "run_status": "completed",
-                },
-            ),
+            new=mock_bundle_creator_node,
         ),
     ):
         mock_list.side_effect = _make_list_products_side_effect(_COMPATIBLE_INVENTORY)
@@ -765,6 +750,7 @@ async def test_towers_retrievable_after_run(
 @pytest.mark.asyncio
 async def test_tower_detail_after_run(
     integration_client: httpx.AsyncClient,
+    mock_bundle_creator_node: AsyncMock,
 ) -> None:
     """Tower detail endpoint returns correct data for a tower created by the pipeline.
 
@@ -787,13 +773,7 @@ async def test_tower_detail_after_run(
         ) as mock_detail,
         patch(
             "orchestrator.graph.workflow.bundle_creator_node",
-            new=AsyncMock(
-                return_value={
-                    "completed_bundles": [],
-                    "errors": [],
-                    "run_status": "completed",
-                },
-            ),
+            new=mock_bundle_creator_node,
         ),
     ):
         mock_list.side_effect = _make_list_products_side_effect(_COMPATIBLE_INVENTORY)

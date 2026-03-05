@@ -18,7 +18,11 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from orchestrator.graph.state import GraphState
-from orchestrator.graph.workflow import _route_after_assembly, build_assembly_graph
+from orchestrator.graph.workflow import (
+    _NODE_BUNDLE_CREATOR,
+    _route_after_assembly,
+    build_assembly_graph,
+)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -193,10 +197,10 @@ async def test_workflow_empty_tiers() -> None:
 
 
 def test_route_after_assembly_success() -> None:
-    """_route_after_assembly must return bundle_creator for a successful state."""
+    """_route_after_assembly must return the Bundle Creator node for a successful state."""
     state = GraphState(run_status="completed", completed_builds=[SAMPLE_BUILD])
     route = _route_after_assembly(state)
-    assert route == "bundle_creator"
+    assert route == _NODE_BUNDLE_CREATOR
 
 
 # ---------------------------------------------------------------------------
@@ -219,10 +223,10 @@ def test_route_after_assembly_failure() -> None:
 
 
 def test_workflow_routes_to_bundle_on_success() -> None:
-    """Successful assembly (completed + non-empty builds) must route to bundle_creator."""
+    """Successful assembly (completed + non-empty builds) must route to the Bundle Creator."""
     state = GraphState(run_status="completed", completed_builds=[SAMPLE_BUILD])
     route = _route_after_assembly(state)
-    assert route == "bundle_creator"
+    assert route == _NODE_BUNDLE_CREATOR
 
 
 # ---------------------------------------------------------------------------
