@@ -17,6 +17,10 @@ class ComponentCategory(enum.StrEnum):
         PSU: Power supply unit.
         CASE: PC chassis / case.
         FAN: Case or CPU cooling fan.
+        KEYBOARD: Keyboard peripheral.
+        MOUSE: Mouse peripheral.
+        MONITOR: Monitor / display peripheral.
+        SPEAKERS: Speakers / audio peripheral.
     """
 
     CPU = "cpu"
@@ -27,6 +31,10 @@ class ComponentCategory(enum.StrEnum):
     PSU = "psu"
     CASE = "case"
     FAN = "fan"
+    KEYBOARD = "keyboard"
+    MOUSE = "mouse"
+    MONITOR = "monitor"
+    SPEAKERS = "speakers"
 
 
 class ProductListItem(BaseModel):
