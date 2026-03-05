@@ -3,7 +3,7 @@
 Covers the full flow:
 
     POST /api/v1/runs/trigger/
-        → LangGraph workflow (inventory_architect_node)
+        → LangGraph workflow (inventory_architect_node → bundle_creator_node)
         → AIEcommerce API fetch (mocked)
         → compatibility validation (CompatibilityEngine)
         → uniqueness check (UniquenessEngine + TowerRepository)
@@ -13,8 +13,10 @@ Covers the full flow:
 
 All external HTTP calls to the aiecommerce API are intercepted by patching
 ``AIEcommerceClient.list_products`` and ``AIEcommerceClient.get_product_detail``
-with ``AsyncMock`` instances.  The database layer uses real SQLAlchemy sessions
-backed by an in-memory SQLite engine (see ``conftest.py``).
+with ``AsyncMock`` instances.  The ``bundle_creator_node`` is mocked out so
+that Phase 1 tower-assembly tests remain focused on the Inventory Architect.
+The database layer uses real SQLAlchemy sessions backed by an in-memory
+SQLite engine (see ``conftest.py``).
 """
 
 from collections.abc import Awaitable, Callable
@@ -555,6 +557,16 @@ async def test_full_assembly_run_three_tiers(
             "get_product_detail",
             new_callable=AsyncMock,
         ) as mock_detail,
+        patch(
+            "orchestrator.graph.workflow.bundle_creator_node",
+            new=AsyncMock(
+                return_value={
+                    "completed_bundles": [],
+                    "errors": [],
+                    "run_status": "completed",
+                },
+            ),
+        ),
     ):
         mock_list.side_effect = _make_list_products_side_effect(_COMPATIBLE_INVENTORY)
         mock_detail.side_effect = _make_get_detail_side_effect(_COMPATIBLE_DETAIL_CATALOG)
@@ -598,6 +610,16 @@ async def test_assembly_run_produces_unique_hashes(
             "get_product_detail",
             new_callable=AsyncMock,
         ) as mock_detail,
+        patch(
+            "orchestrator.graph.workflow.bundle_creator_node",
+            new=AsyncMock(
+                return_value={
+                    "completed_bundles": [],
+                    "errors": [],
+                    "run_status": "completed",
+                },
+            ),
+        ),
     ):
         mock_list.side_effect = _make_list_products_side_effect(_COMPATIBLE_INVENTORY)
         mock_detail.side_effect = _make_get_detail_side_effect(_COMPATIBLE_DETAIL_CATALOG)
@@ -699,6 +721,16 @@ async def test_towers_retrievable_after_run(
             "get_product_detail",
             new_callable=AsyncMock,
         ) as mock_detail,
+        patch(
+            "orchestrator.graph.workflow.bundle_creator_node",
+            new=AsyncMock(
+                return_value={
+                    "completed_bundles": [],
+                    "errors": [],
+                    "run_status": "completed",
+                },
+            ),
+        ),
     ):
         mock_list.side_effect = _make_list_products_side_effect(_COMPATIBLE_INVENTORY)
         mock_detail.side_effect = _make_get_detail_side_effect(_COMPATIBLE_DETAIL_CATALOG)
@@ -753,6 +785,16 @@ async def test_tower_detail_after_run(
             "get_product_detail",
             new_callable=AsyncMock,
         ) as mock_detail,
+        patch(
+            "orchestrator.graph.workflow.bundle_creator_node",
+            new=AsyncMock(
+                return_value={
+                    "completed_bundles": [],
+                    "errors": [],
+                    "run_status": "completed",
+                },
+            ),
+        ),
     ):
         mock_list.side_effect = _make_list_products_side_effect(_COMPATIBLE_INVENTORY)
         mock_detail.side_effect = _make_get_detail_side_effect(_COMPATIBLE_DETAIL_CATALOG)
