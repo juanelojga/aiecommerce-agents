@@ -24,6 +24,9 @@ class GraphState(BaseModel):
         errors: Accumulated error messages from any node in the graph.
         run_status: Literal["pending", "running", "completed", "failed"] indicating the
             overall status of the current run.
+        completed_bundles: Serialized ``BundleBuild`` dicts produced by the Bundle Creator node.
+            Each dict contains the tower_hash, tier, peripheral selections, bundle_id hash,
+            and total_peripheral_price.
     """
 
     # ── Core fields (backward-compatible) ────────────────────────────────────
@@ -39,3 +42,6 @@ class GraphState(BaseModel):
     errors: list[str] = Field(default_factory=list)
     # Valid values: "pending" | "running" | "completed" | "failed"
     run_status: Literal["pending", "running", "completed", "failed"] = "pending"
+
+    # ── Phase 2: Bundle Creation ──────────────────────────────────────────────
+    completed_bundles: list[dict[str, object]] = Field(default_factory=list)

@@ -1,4 +1,4 @@
-"""Tests for LangGraph GraphState extensions (Task 12)."""
+"""Tests for LangGraph GraphState extensions (Task 12 & Phase 2)."""
 
 from orchestrator.graph.state import GraphState
 
@@ -10,6 +10,14 @@ SAMPLE_BUILD: dict[str, object] = {
     "tier": "Home",
     "bundle_hash": "abc123",
     "total_price": 599.99,
+}
+
+SAMPLE_BUNDLE: dict[str, object] = {
+    "tower_hash": "abc123",
+    "tier": "Home",
+    "peripheral_skus": ["MOUSE-001", "KB-001"],
+    "bundle_id": "bndl-xyz789",
+    "total_peripheral_price": 149.99,
 }
 
 SAMPLE_INVENTORY_ITEM: dict[str, object] = {
@@ -167,3 +175,75 @@ def test_graph_state_backward_compatible() -> None:
     # Phase 1 fields should still be at their defaults
     assert state.requested_tiers == []
     assert state.run_status == "pending"
+
+
+# ---------------------------------------------------------------------------
+# test_graph_state_bundle_defaults
+# ---------------------------------------------------------------------------
+
+
+def test_graph_state_bundle_defaults() -> None:
+    """``completed_bundles`` must default to an empty list on a fresh state.
+
+    Verifies that the Phase 2 field is correctly initialised without requiring
+    an explicit value, so Bundle Creator nodes can safely append to it.
+    """
+    state = GraphState()
+
+    assert state.completed_bundles == []
+
+
+# ---------------------------------------------------------------------------
+# test_graph_state_with_bundles
+# ---------------------------------------------------------------------------
+
+
+def test_graph_state_with_bundles() -> None:
+    """A state populated with bundle data must serialise correctly.
+
+    Verifies that ``completed_bundles`` round-trips through ``model_dump``
+    without data loss, preserving all fields of each bundle dict.
+    """
+    state = GraphState(completed_bundles=[SAMPLE_BUNDLE])
+
+    dumped = state.model_dump()
+
+    assert dumped["completed_bundles"] == [SAMPLE_BUNDLE]
+    assert dumped["completed_bundles"][0]["tower_hash"] == "abc123"
+    assert dumped["completed_bundles"][0]["tier"] == "Home"
+    assert dumped["completed_bundles"][0]["bundle_id"] == "bndl-xyz789"
+    assert dumped["completed_bundles"][0]["total_peripheral_price"] == 149.99
+
+
+# ---------------------------------------------------------------------------
+# test_graph_state_bundle_backward_compatible
+# ---------------------------------------------------------------------------
+
+
+def test_graph_state_bundle_backward_compatible() -> None:
+    """All Phase 1 fields must remain unchanged after adding Phase 2 fields.
+
+    Ensures that introducing ``completed_bundles`` does not alter the defaults
+    or behaviour of any existing field from Phase 1.
+    """
+    state = GraphState(
+        requested_tiers=["Home", "Gaming"],
+        inventory=[SAMPLE_INVENTORY_ITEM],
+        component_specs={"CPU-001": SAMPLE_SPECS},
+        completed_builds=[SAMPLE_BUILD],
+        current_tier="Gaming",
+        errors=["minor warning"],
+        run_status="running",
+    )
+
+    # Phase 2 field defaults to empty when not provided
+    assert state.completed_bundles == []
+
+    # All Phase 1 fields are unchanged
+    assert state.requested_tiers == ["Home", "Gaming"]
+    assert state.inventory == [SAMPLE_INVENTORY_ITEM]
+    assert state.component_specs == {"CPU-001": SAMPLE_SPECS}
+    assert state.completed_builds == [SAMPLE_BUILD]
+    assert state.current_tier == "Gaming"
+    assert state.errors == ["minor warning"]
+    assert state.run_status == "running"
