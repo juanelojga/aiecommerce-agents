@@ -72,8 +72,21 @@ def _make_selection(
 
 
 def test_component_category_enum_values() -> None:
-    """All eight expected component categories must be present."""
-    expected = {"cpu", "motherboard", "ram", "gpu", "ssd", "psu", "case", "fan"}
+    """All twelve expected component categories must be present."""
+    expected = {
+        "cpu",
+        "motherboard",
+        "ram",
+        "gpu",
+        "ssd",
+        "psu",
+        "case",
+        "fan",
+        "keyboard",
+        "mouse",
+        "monitor",
+        "speakers",
+    }
     actual = {member.value for member in ComponentCategory}
     assert actual == expected
 
