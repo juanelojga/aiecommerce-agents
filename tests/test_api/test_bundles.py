@@ -18,17 +18,17 @@ _BUNDLE_ID_B = "2" * 64
 _BUNDLE_ID_C = "3" * 64
 
 
-def _make_tower(bundle_hash: str) -> PublishedTower:
+def _make_tower(tower_hash: str) -> PublishedTower:
     """Create a :class:`PublishedTower` instance for FK satisfaction.
 
     Args:
-        bundle_hash: Unique hash for the tower.
+        tower_hash: Unique hash for the tower.
 
     Returns:
         An unsaved :class:`PublishedTower` instance.
     """
     return PublishedTower(
-        bundle_hash=bundle_hash,
+        bundle_hash=tower_hash,
         category=TowerCategory.GAMING,
         status=TowerStatus.ACTIVE,
         total_price=1299.99,
