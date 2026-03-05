@@ -47,6 +47,7 @@ async def trigger_assembly_run(
     final_state: dict[str, Any] = await graph.ainvoke({"requested_tiers": effective_request.tiers})
 
     completed_builds: list[dict[str, Any]] = list(final_state.get("completed_builds", []))
+    completed_bundles: list[dict[str, Any]] = list(final_state.get("completed_bundles", []))
     errors: list[str] = list(final_state.get("errors", []))
     run_status: str = str(final_state.get("run_status", "failed"))
 
@@ -55,9 +56,10 @@ async def trigger_assembly_run(
     ]
 
     logger.info(
-        "Assembly run completed — status=%s towers=%d errors=%d",
+        "Assembly run completed — status=%s towers=%d bundles=%d errors=%d",
         run_status,
         len(tower_hashes),
+        len(completed_bundles),
         len(errors),
     )
 
@@ -65,5 +67,6 @@ async def trigger_assembly_run(
         status=run_status,
         towers_created=len(tower_hashes),
         tower_hashes=tower_hashes,
+        bundles_created=len(completed_bundles),
         errors=errors,
     )

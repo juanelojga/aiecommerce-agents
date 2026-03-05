@@ -79,10 +79,12 @@ class RunTriggerResponse(BaseModel):
         status: High-level outcome of the run (e.g. ``"completed"``).
         towers_created: Number of new towers successfully stored.
         tower_hashes: SHA-256 hashes of all newly created towers.
+        bundles_created: Number of new bundles successfully created.
         errors: List of error messages encountered during the run.
     """
 
     status: str
     towers_created: int
     tower_hashes: list[str]
+    bundles_created: int = 0
     errors: list[str] = Field(default_factory=list)

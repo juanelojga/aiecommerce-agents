@@ -20,12 +20,21 @@ _HASH_HOME = "h" * 64
 _HASH_BUSINESS = "b" * 64
 _HASH_GAMING = "g" * 64
 
+_BUNDLE_HOME = "bh" * 32
+_BUNDLE_BUSINESS = "bb" * 32
+_BUNDLE_GAMING = "bg" * 32
+
 # A minimal final state returned by the mocked workflow graph.
 _SUCCESSFUL_STATE: dict[str, object] = {
     "completed_builds": [
         {"bundle_hash": _HASH_HOME, "tier": "Home", "total_price": 599.99},
         {"bundle_hash": _HASH_BUSINESS, "tier": "Business", "total_price": 899.99},
         {"bundle_hash": _HASH_GAMING, "tier": "Gaming", "total_price": 1499.99},
+    ],
+    "completed_bundles": [
+        {"bundle_id": _BUNDLE_HOME, "tower_hash": _HASH_HOME, "tier": "Home"},
+        {"bundle_id": _BUNDLE_BUSINESS, "tower_hash": _HASH_BUSINESS, "tier": "Business"},
+        {"bundle_id": _BUNDLE_GAMING, "tower_hash": _HASH_GAMING, "tier": "Gaming"},
     ],
     "errors": [],
     "run_status": "completed",
@@ -95,6 +104,7 @@ async def test_trigger_run_success(trigger_client: httpx.AsyncClient) -> None:
     assert data["status"] == "completed"
     assert data["towers_created"] == 3
     assert set(data["tower_hashes"]) == {_HASH_HOME, _HASH_BUSINESS, _HASH_GAMING}
+    assert data["bundles_created"] == 3
     assert data["errors"] == []
 
 
@@ -170,6 +180,7 @@ async def test_trigger_run_workflow_error(trigger_client: httpx.AsyncClient) -> 
     assert data["status"] == "failed"
     assert data["towers_created"] == 0
     assert data["tower_hashes"] == []
+    assert data["bundles_created"] == 0
     assert len(data["errors"]) == 1
     assert "CPU" in data["errors"][0]
 
@@ -190,3 +201,49 @@ async def test_trigger_run_default_tiers(trigger_client: httpx.AsyncClient) -> N
     # The workflow should have been invoked with all three default tiers.
     call_args = mock_graph.ainvoke.call_args[0][0]
     assert set(call_args["requested_tiers"]) == {"Home", "Business", "Gaming"}
+
+
+@pytest.mark.asyncio
+async def test_run_trigger_response_includes_bundles_created(
+    trigger_client: httpx.AsyncClient,
+) -> None:
+    """RunTriggerResponse contains the bundles_created field populated from workflow state."""
+    mock_graph = AsyncMock()
+    mock_graph.ainvoke.return_value = _SUCCESSFUL_STATE
+
+    with patch("orchestrator.api.routes.triggers.build_assembly_graph", return_value=mock_graph):
+        response = await trigger_client.post(
+            "/api/v1/runs/trigger/",
+            headers={"X-API-Key": _VALID_KEY},
+        )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert "bundles_created" in data
+    assert data["bundles_created"] == 3
+
+
+@pytest.mark.asyncio
+async def test_run_trigger_response_bundles_created_default_zero(
+    trigger_client: httpx.AsyncClient,
+) -> None:
+    """bundles_created defaults to 0 when no bundles are created by the workflow."""
+    mock_graph = AsyncMock()
+    mock_graph.ainvoke.return_value = {
+        "completed_builds": [
+            {"bundle_hash": _HASH_HOME, "tier": "Home", "total_price": 599.99},
+        ],
+        "completed_bundles": [],
+        "errors": [],
+        "run_status": "completed",
+    }
+
+    with patch("orchestrator.api.routes.triggers.build_assembly_graph", return_value=mock_graph):
+        response = await trigger_client.post(
+            "/api/v1/runs/trigger/",
+            headers={"X-API-Key": _VALID_KEY},
+        )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["bundles_created"] == 0
