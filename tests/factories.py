@@ -12,6 +12,7 @@ Example usage::
 
 from orchestrator.models.bundle import PublishedBundle
 from orchestrator.models.component_audit import ComponentAudit
+from orchestrator.models.creative_asset import CreativeAsset
 from orchestrator.models.tower import PublishedTower, TowerCategory, TowerStatus
 
 # ---------------------------------------------------------------------------
@@ -111,3 +112,34 @@ def make_component_audit(**overrides: object) -> ComponentAudit:
     }
     defaults.update(overrides)
     return ComponentAudit(**defaults)
+
+
+# ---------------------------------------------------------------------------
+# CreativeAsset factory
+# ---------------------------------------------------------------------------
+
+
+def make_creative_asset(**overrides: object) -> CreativeAsset:
+    """Create a transient :class:`CreativeAsset` with default field values.
+
+    Args:
+        **overrides: Any :class:`CreativeAsset` field values to override.
+
+    Returns:
+        An unsaved :class:`CreativeAsset` instance ready to be added to a
+        database session.
+    """
+    defaults: dict[str, object] = {
+        "tower_hash": _DEFAULT_TOWER_HASH,
+        "bundle_id": _DEFAULT_BUNDLE_ID,
+        "media_type": "image",
+        "url": "https://example.com/asset.png",
+        "mime_type": "image/png",
+        "width": 1920,
+        "height": 1080,
+        "duration_seconds": None,
+        "style": "photorealistic",
+        "prompt_used": "A high-end gaming PC setup",
+    }
+    defaults.update(overrides)
+    return CreativeAsset(**defaults)
