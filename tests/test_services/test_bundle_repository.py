@@ -126,3 +126,35 @@ async def test_list_all_with_data(db_session: AsyncSession) -> None:
     assert len(result) == 2
     ids = {b.bundle_id for b in result}
     assert ids == {"i" * 64, "j" * 64}
+
+
+# ---------------------------------------------------------------------------
+# update_ml_id
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_update_bundle_ml_id_success(db_session: AsyncSession) -> None:
+    """update_ml_id sets ml_id on an existing bundle and returns it."""
+    tower = make_tower(bundle_hash="k" * 64)
+    db_session.add(tower)
+    bundle = make_bundle(bundle_id="m" * 64, tower_hash="k" * 64)
+    db_session.add(bundle)
+    await db_session.commit()
+
+    repo = BundleRepository(db_session)
+    updated = await repo.update_ml_id("m" * 64, "ML-987654321")
+    await db_session.commit()
+
+    assert updated is not None
+    assert updated.ml_id == "ML-987654321"
+
+
+@pytest.mark.asyncio
+async def test_update_bundle_ml_id_not_found(db_session: AsyncSession) -> None:
+    """update_ml_id returns None when no bundle matches the ID."""
+    repo = BundleRepository(db_session)
+
+    result = await repo.update_ml_id("z" * 64, "ML-999")
+
+    assert result is None

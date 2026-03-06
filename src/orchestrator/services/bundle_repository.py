@@ -80,3 +80,21 @@ class BundleRepository:
         await self._session.flush()
         await self._session.refresh(bundle)
         return bundle
+
+    async def update_ml_id(self, bundle_id: str, ml_id: str) -> PublishedBundle | None:
+        """Update the MercadoLibre listing ID for a published bundle.
+
+        Args:
+            bundle_id: The SHA-256 hex digest identifying the bundle to update.
+            ml_id: The MercadoLibre listing ID to record.
+
+        Returns:
+            The updated :class:`PublishedBundle`, or ``None`` if not found.
+        """
+        bundle = await self.get_by_id(bundle_id)
+        if bundle is None:
+            return None
+        bundle.ml_id = ml_id
+        await self._session.flush()
+        await self._session.refresh(bundle)
+        return bundle
