@@ -83,3 +83,52 @@ class BundleNotFoundError(OrchestratorError):
     """
 
     STATUS_CODE: int = HTTPStatus.NOT_FOUND.value
+
+
+class MediaGenerationError(OrchestratorError):
+    """Error generating media content via an AI provider.
+
+    Raised when a media generation request (e.g. image, video) fails or
+    returns an invalid result from the underlying provider.
+
+    Attributes:
+        media_type: The type of media being generated (e.g. ``"image"``).
+        provider: The AI provider that was used (e.g. ``"gemini"``).
+    """
+
+    STATUS_CODE: int = HTTPStatus.INTERNAL_SERVER_ERROR.value
+
+    def __init__(self, message: str, media_type: str = "", provider: str = "") -> None:
+        """Initialise with a descriptive message and optional context.
+
+        Args:
+            message: Human-readable description of what went wrong.
+            media_type: Type of media being generated (e.g. ``"image"``).
+            provider: AI provider that raised the error (e.g. ``"gemini"``).
+        """
+        super().__init__(message)
+        self.media_type = media_type
+        self.provider = provider
+
+
+class MediaComplianceError(OrchestratorError):
+    """Generated media failed compliance or content-policy validation.
+
+    Raised when the compliance validator detects policy violations in
+    AI-generated media content.
+
+    Attributes:
+        violations: List of policy violation descriptions detected.
+    """
+
+    STATUS_CODE: int = HTTPStatus.UNPROCESSABLE_ENTITY.value
+
+    def __init__(self, message: str, violations: list[str] | None = None) -> None:
+        """Initialise with a descriptive message and optional violation list.
+
+        Args:
+            message: Human-readable description of what went wrong.
+            violations: Policy violations detected; defaults to an empty list.
+        """
+        super().__init__(message)
+        self.violations: list[str] = violations if violations is not None else []
