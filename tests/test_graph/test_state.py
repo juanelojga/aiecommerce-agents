@@ -20,6 +20,14 @@ SAMPLE_BUNDLE: dict[str, object] = {
     "total_peripheral_price": 149.99,
 }
 
+SAMPLE_ASSET: dict[str, object] = {
+    "bundle_id": "bndl-xyz789",
+    "tier": "Home",
+    "asset_type": "product_description",
+    "content": "Experience seamless home computing with this complete kit.",
+    "asset_id": "asset-abc001",
+}
+
 SAMPLE_INVENTORY_ITEM: dict[str, object] = {
     "id": 1,
     "sku": "CPU-001",
@@ -247,3 +255,79 @@ def test_graph_state_bundle_backward_compatible() -> None:
     assert state.current_tier == "Gaming"
     assert state.errors == ["minor warning"]
     assert state.run_status == "running"
+
+
+# ---------------------------------------------------------------------------
+# test_graph_state_creative_defaults
+# ---------------------------------------------------------------------------
+
+
+def test_graph_state_creative_defaults() -> None:
+    """``completed_assets`` must default to an empty list on a fresh state.
+
+    Verifies that the Phase 3 field is correctly initialised without requiring
+    an explicit value, so Creative Asset Generation nodes can safely append to it.
+    """
+    state = GraphState()
+
+    assert state.completed_assets == []
+
+
+# ---------------------------------------------------------------------------
+# test_graph_state_with_assets
+# ---------------------------------------------------------------------------
+
+
+def test_graph_state_with_assets() -> None:
+    """A state populated with asset data must serialise correctly.
+
+    Verifies that ``completed_assets`` round-trips through ``model_dump``
+    without data loss, preserving all fields of each asset dict.
+    """
+    state = GraphState(completed_assets=[SAMPLE_ASSET])
+
+    dumped = state.model_dump()
+
+    assert dumped["completed_assets"] == [SAMPLE_ASSET]
+    assert dumped["completed_assets"][0]["bundle_id"] == "bndl-xyz789"
+    assert dumped["completed_assets"][0]["tier"] == "Home"
+    assert dumped["completed_assets"][0]["asset_id"] == "asset-abc001"
+    assert dumped["completed_assets"][0]["asset_type"] == "product_description"
+
+
+# ---------------------------------------------------------------------------
+# test_graph_state_creative_backward_compatible
+# ---------------------------------------------------------------------------
+
+
+def test_graph_state_creative_backward_compatible() -> None:
+    """All Phase 1 & 2 fields must remain unchanged after adding Phase 3 fields.
+
+    Ensures that introducing ``completed_assets`` does not alter the defaults
+    or behaviour of any existing field from Phase 1 or Phase 2.
+    """
+    state = GraphState(
+        requested_tiers=["Home", "Gaming"],
+        inventory=[SAMPLE_INVENTORY_ITEM],
+        component_specs={"CPU-001": SAMPLE_SPECS},
+        completed_builds=[SAMPLE_BUILD],
+        current_tier="Gaming",
+        errors=["minor warning"],
+        run_status="running",
+        completed_bundles=[SAMPLE_BUNDLE],
+    )
+
+    # Phase 3 field defaults to empty when not provided
+    assert state.completed_assets == []
+
+    # All Phase 1 fields are unchanged
+    assert state.requested_tiers == ["Home", "Gaming"]
+    assert state.inventory == [SAMPLE_INVENTORY_ITEM]
+    assert state.component_specs == {"CPU-001": SAMPLE_SPECS}
+    assert state.completed_builds == [SAMPLE_BUILD]
+    assert state.current_tier == "Gaming"
+    assert state.errors == ["minor warning"]
+    assert state.run_status == "running"
+
+    # Phase 2 field is unchanged
+    assert state.completed_bundles == [SAMPLE_BUNDLE]
