@@ -12,6 +12,8 @@ from orchestrator.core.exceptions import (
     APIClientError,
     CompatibilityError,
     InventoryError,
+    MediaComplianceError,
+    MediaGenerationError,
     OrchestratorError,
     TowerNotFoundError,
     UniquenessError,
@@ -152,3 +154,30 @@ class TestExceptionHandlerReturnsJson:
         body = response.json()
         assert "detail" in body
         assert body["detail"] == "tower abc123 not found"
+
+
+class TestMediaExceptions:
+    """Tests for MediaGenerationError and MediaComplianceError."""
+
+    def test_media_generation_error_attributes(self) -> None:
+        """MediaGenerationError stores message, media_type, and provider."""
+        exc = MediaGenerationError("failed to generate", media_type="image", provider="gemini")
+        assert exc.message == "failed to generate"
+        assert exc.media_type == "image"
+        assert exc.provider == "gemini"
+
+    def test_media_generation_error_is_orchestrator_error(self) -> None:
+        """MediaGenerationError inherits from OrchestratorError."""
+        assert issubclass(MediaGenerationError, OrchestratorError)
+
+    def test_media_compliance_error_attributes(self) -> None:
+        """MediaComplianceError stores message and violations list."""
+        violations = ["nudity", "violence"]
+        exc = MediaComplianceError("content policy violated", violations=violations)
+        assert exc.message == "content policy violated"
+        assert exc.violations == violations
+
+    def test_media_compliance_error_default_violations(self) -> None:
+        """MediaComplianceError defaults violations to an empty list."""
+        exc = MediaComplianceError("compliance check failed")
+        assert exc.violations == []
