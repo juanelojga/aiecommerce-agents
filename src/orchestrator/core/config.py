@@ -49,6 +49,14 @@ class Settings(BaseSettings):
     OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
     OPENROUTER_MODEL: str = "openai/gpt-4o-mini"
 
+    # ── Phase 3: Creative Asset Generation (Gemini) ───────────────────
+    GOOGLE_API_KEY: str = ""
+    GEMINI_IMAGE_MODEL: str = "imagen-3.0-generate-002"
+    GEMINI_VIDEO_MODEL: str = "veo-2.0-generate-001"
+    MEDIA_IMAGES_PER_LISTING: int = 4
+    MEDIA_VIDEOS_PER_LISTING: int = 1
+    MEDIA_GENERATION_TIMEOUT: int = 600
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
