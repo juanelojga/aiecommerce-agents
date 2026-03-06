@@ -29,6 +29,8 @@ class GraphState(BaseModel):
             and total_peripheral_price.
         completed_assets: Serialized creative asset dicts produced by the Creative Asset
             Generation node. Each dict contains the asset metadata and generated content.
+        published_listings: Serialized published listing dicts produced by the Channel
+            Manager node. Each dict contains publication results for a channel listing.
     """
 
     # ── Core fields (backward-compatible) ────────────────────────────────────
@@ -50,3 +52,6 @@ class GraphState(BaseModel):
 
     # ── Phase 3: Creative Asset Generation ───────────────────────────────────
     completed_assets: list[dict[str, object]] = Field(default_factory=list)
+
+    # ── Phase 4: Publication ──────────────────────────────────────────────────
+    published_listings: list[dict[str, object]] = Field(default_factory=list)

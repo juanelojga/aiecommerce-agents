@@ -1,4 +1,4 @@
-"""Tests for LangGraph GraphState extensions (Task 12 & Phase 2)."""
+"""Tests for LangGraph GraphState extensions (Task 12, Phase 2, 3 & 4)."""
 
 from orchestrator.graph.state import GraphState
 
@@ -26,6 +26,14 @@ SAMPLE_ASSET: dict[str, object] = {
     "asset_type": "product_description",
     "content": "Experience seamless home computing with this complete kit.",
     "asset_id": "asset-abc001",
+}
+
+SAMPLE_LISTING: dict[str, object] = {
+    "bundle_id": "bndl-xyz789",
+    "tier": "Home",
+    "channel": "storefront",
+    "listing_id": "lst-def002",
+    "status": "published",
 }
 
 SAMPLE_INVENTORY_ITEM: dict[str, object] = {
@@ -331,3 +339,83 @@ def test_graph_state_creative_backward_compatible() -> None:
 
     # Phase 2 field is unchanged
     assert state.completed_bundles == [SAMPLE_BUNDLE]
+
+
+# ---------------------------------------------------------------------------
+# test_graph_state_publication_defaults
+# ---------------------------------------------------------------------------
+
+
+def test_graph_state_publication_defaults() -> None:
+    """``published_listings`` must default to an empty list on a fresh state.
+
+    Verifies that the Phase 4 field is correctly initialised without requiring
+    an explicit value, so Channel Manager nodes can safely append to it.
+    """
+    state = GraphState()
+
+    assert state.published_listings == []
+
+
+# ---------------------------------------------------------------------------
+# test_graph_state_with_publications
+# ---------------------------------------------------------------------------
+
+
+def test_graph_state_with_publications() -> None:
+    """A state populated with publication data must serialise correctly.
+
+    Verifies that ``published_listings`` round-trips through ``model_dump``
+    without data loss, preserving all fields of each listing dict.
+    """
+    state = GraphState(published_listings=[SAMPLE_LISTING])
+
+    dumped = state.model_dump()
+
+    assert dumped["published_listings"] == [SAMPLE_LISTING]
+    assert dumped["published_listings"][0]["bundle_id"] == "bndl-xyz789"
+    assert dumped["published_listings"][0]["tier"] == "Home"
+    assert dumped["published_listings"][0]["listing_id"] == "lst-def002"
+    assert dumped["published_listings"][0]["status"] == "published"
+
+
+# ---------------------------------------------------------------------------
+# test_graph_state_publication_backward_compatible
+# ---------------------------------------------------------------------------
+
+
+def test_graph_state_publication_backward_compatible() -> None:
+    """All Phase 1, 2, and 3 fields must remain unchanged after adding Phase 4 fields.
+
+    Ensures that introducing ``published_listings`` does not alter the defaults
+    or behaviour of any existing field from Phases 1, 2, or 3.
+    """
+    state = GraphState(
+        requested_tiers=["Home", "Gaming"],
+        inventory=[SAMPLE_INVENTORY_ITEM],
+        component_specs={"CPU-001": SAMPLE_SPECS},
+        completed_builds=[SAMPLE_BUILD],
+        current_tier="Gaming",
+        errors=["minor warning"],
+        run_status="running",
+        completed_bundles=[SAMPLE_BUNDLE],
+        completed_assets=[SAMPLE_ASSET],
+    )
+
+    # Phase 4 field defaults to empty when not provided
+    assert state.published_listings == []
+
+    # All Phase 1 fields are unchanged
+    assert state.requested_tiers == ["Home", "Gaming"]
+    assert state.inventory == [SAMPLE_INVENTORY_ITEM]
+    assert state.component_specs == {"CPU-001": SAMPLE_SPECS}
+    assert state.completed_builds == [SAMPLE_BUILD]
+    assert state.current_tier == "Gaming"
+    assert state.errors == ["minor warning"]
+    assert state.run_status == "running"
+
+    # Phase 2 field is unchanged
+    assert state.completed_bundles == [SAMPLE_BUNDLE]
+
+    # Phase 3 field is unchanged
+    assert state.completed_assets == [SAMPLE_ASSET]
