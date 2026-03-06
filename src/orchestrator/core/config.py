@@ -44,6 +44,15 @@ class Settings(BaseSettings):
     MERCADOLIBRE_CLIENT_SECRET: str = ""
     MERCADOLIBRE_REDIRECT_URI: str = "https://localhost:8000/auth/callback"
 
+    # ── MercadoLibre API ────────────────────────────────────────────────
+    MERCADOLIBRE_API_URL: str = "https://api.mercadolibre.com"
+    MERCADOLIBRE_ACCESS_TOKEN: str = ""
+    MERCADOLIBRE_REFRESH_TOKEN: str = ""
+
+    # ── Pricing ─────────────────────────────────────────────────────────
+    ASSEMBLY_MARGIN_PERCENT: float = 15.0
+    ML_FEE_PERCENT: float = 12.0
+
     # ── OpenRouter (LangChain / LangGraph) ────────────────────────────────────
     OPENROUTER_API_KEY: str = ""
     OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
