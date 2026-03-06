@@ -38,7 +38,8 @@ async def trigger_assembly_run(
 
     Returns:
         A :class:`RunTriggerResponse` with the run status, created tower
-        hashes, total count, and any accumulated errors.
+        hashes, total count, bundles created, assets generated, and any
+        accumulated errors.
     """
     effective_request = request if request is not None else RunTriggerRequest()
     logger.info("Manual assembly run triggered for tiers: %s", effective_request.tiers)
@@ -48,6 +49,7 @@ async def trigger_assembly_run(
 
     completed_builds: list[dict[str, Any]] = list(final_state.get("completed_builds", []))
     completed_bundles: list[dict[str, Any]] = list(final_state.get("completed_bundles", []))
+    completed_assets: list[dict[str, Any]] = list(final_state.get("completed_assets", []))
     errors: list[str] = list(final_state.get("errors", []))
     run_status: str = str(final_state.get("run_status", "failed"))
 
@@ -56,10 +58,11 @@ async def trigger_assembly_run(
     ]
 
     logger.info(
-        "Assembly run completed — status=%s towers=%d bundles=%d errors=%d",
+        "Assembly run completed — status=%s towers=%d bundles=%d assets=%d errors=%d",
         run_status,
         len(tower_hashes),
         len(completed_bundles),
+        len(completed_assets),
         len(errors),
     )
 
@@ -68,5 +71,6 @@ async def trigger_assembly_run(
         towers_created=len(tower_hashes),
         tower_hashes=tower_hashes,
         bundles_created=len(completed_bundles),
+        assets_generated=len(completed_assets),
         errors=errors,
     )

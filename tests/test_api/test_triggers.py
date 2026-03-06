@@ -247,3 +247,101 @@ async def test_run_trigger_response_bundles_created_default_zero(
     assert response.status_code == 200
     data = response.json()
     assert data["bundles_created"] == 0
+
+
+# ---------------------------------------------------------------------------
+# New tests: assets_generated
+# ---------------------------------------------------------------------------
+
+_ASSET_HOME = {
+    "bundle_id": _BUNDLE_HOME,
+    "tier": "Home",
+    "media_type": "image",
+    "url": "http://img1",
+}
+_ASSET_BUSINESS = {
+    "bundle_id": _BUNDLE_BUSINESS,
+    "tier": "Business",
+    "media_type": "image",
+    "url": "http://img2",
+}
+_ASSET_GAMING = {
+    "bundle_id": _BUNDLE_GAMING,
+    "tier": "Gaming",
+    "media_type": "video",
+    "url": "http://vid1",
+}
+
+_FULL_PIPELINE_STATE: dict[str, object] = {
+    **_SUCCESSFUL_STATE,
+    "completed_assets": [_ASSET_HOME, _ASSET_BUSINESS, _ASSET_GAMING],
+}
+
+
+@pytest.mark.asyncio
+async def test_trigger_response_includes_assets(
+    trigger_client: httpx.AsyncClient,
+) -> None:
+    """RunTriggerResponse contains the assets_generated field populated from workflow state."""
+    mock_graph = AsyncMock()
+    mock_graph.ainvoke.return_value = _FULL_PIPELINE_STATE
+
+    with patch("orchestrator.api.routes.triggers.build_assembly_graph", return_value=mock_graph):
+        response = await trigger_client.post(
+            "/api/v1/runs/trigger/",
+            headers={"X-API-Key": _VALID_KEY},
+        )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert "assets_generated" in data
+    assert data["assets_generated"] == 3
+
+
+@pytest.mark.asyncio
+async def test_trigger_full_pipeline(
+    trigger_client: httpx.AsyncClient,
+) -> None:
+    """Full pipeline state: builds + bundles + assets all reflected in response."""
+    mock_graph = AsyncMock()
+    mock_graph.ainvoke.return_value = _FULL_PIPELINE_STATE
+
+    with patch("orchestrator.api.routes.triggers.build_assembly_graph", return_value=mock_graph):
+        response = await trigger_client.post(
+            "/api/v1/runs/trigger/",
+            headers={"X-API-Key": _VALID_KEY},
+        )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "completed"
+    assert data["towers_created"] == 3
+    assert data["bundles_created"] == 3
+    assert data["assets_generated"] == 3
+    assert data["errors"] == []
+
+
+@pytest.mark.asyncio
+async def test_trigger_backward_compatible(
+    trigger_client: httpx.AsyncClient,
+) -> None:
+    """Existing fields are unchanged when completed_assets is absent from workflow state."""
+    mock_graph = AsyncMock()
+    mock_graph.ainvoke.return_value = _SUCCESSFUL_STATE  # no completed_assets key
+
+    with patch("orchestrator.api.routes.triggers.build_assembly_graph", return_value=mock_graph):
+        response = await trigger_client.post(
+            "/api/v1/runs/trigger/",
+            headers={"X-API-Key": _VALID_KEY},
+        )
+
+    assert response.status_code == 200
+    data = response.json()
+    # Legacy fields are intact
+    assert data["status"] == "completed"
+    assert data["towers_created"] == 3
+    assert set(data["tower_hashes"]) == {_HASH_HOME, _HASH_BUSINESS, _HASH_GAMING}
+    assert data["bundles_created"] == 3
+    assert data["errors"] == []
+    # New field defaults to zero when absent from state
+    assert data["assets_generated"] == 0

@@ -80,6 +80,7 @@ class RunTriggerResponse(BaseModel):
         towers_created: Number of new towers successfully stored.
         tower_hashes: SHA-256 hashes of all newly created towers.
         bundles_created: Number of new bundles successfully created.
+        assets_generated: Total number of creative assets produced during the run.
         errors: List of error messages encountered during the run.
     """
 
@@ -87,4 +88,5 @@ class RunTriggerResponse(BaseModel):
     towers_created: int
     tower_hashes: list[str]
     bundles_created: int = 0
+    assets_generated: int = 0
     errors: list[str] = Field(default_factory=list)
