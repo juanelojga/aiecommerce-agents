@@ -402,9 +402,14 @@ async def test_workflow_bundle_failure_propagates() -> None:
 
 
 def test_build_assembly_graph_compiles_phase3() -> None:
-    """3-node graph must compile successfully without raising any exception."""
+    """3-node graph must compile with all three processing nodes registered."""
     compiled = build_assembly_graph()
     assert compiled is not None
+    # Verify all three nodes are present in the compiled graph.
+    node_names = set(compiled.get_graph().nodes)
+    assert "inventory_architect" in node_names
+    assert "bundle_creator" in node_names
+    assert "creative_director" in node_names
 
 
 # ---------------------------------------------------------------------------
