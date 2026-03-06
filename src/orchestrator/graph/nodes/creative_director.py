@@ -20,7 +20,6 @@ from orchestrator.core.exceptions import MediaGenerationError
 from orchestrator.models.creative_asset import CreativeAsset
 from orchestrator.schemas.media import (
     ImageGenerationRequest,
-    ImageStyle,
     MediaAsset,
     VideoGenerationRequest,
 )
@@ -106,7 +105,7 @@ async def creative_director_node(state: GraphState) -> dict[str, object]:
 
             # FR-3.1: Generate 4 images (one per ImageStyle).
             images: list[MediaAsset] = []
-            for idx in range(len(list(ImageStyle))):
+            for idx in range(len(image_request.styles)):
                 try:
                     asset = await media_service.generate_image(image_request, idx)
                     images.append(asset)

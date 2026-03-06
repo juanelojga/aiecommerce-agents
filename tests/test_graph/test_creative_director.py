@@ -47,7 +47,16 @@ _TOWER_HASH_C = "c" * 64
 
 
 def _make_component(name: str, sku: str = "SKU-001", category: str = "cpu") -> dict[str, object]:
-    """Build a minimal serialised ComponentSelection dict."""
+    """Build a minimal serialised ``ComponentSelection`` dict for testing.
+
+    Args:
+        name: Normalised component name.
+        sku: Stock-keeping unit code.
+        category: Component category value string.
+
+    Returns:
+        A dict matching the shape of ``ComponentSelection.model_dump()``.
+    """
     return {
         "sku": sku,
         "normalized_name": name,
@@ -70,7 +79,16 @@ def _make_build(
     bundle_hash: str = _TOWER_HASH_A,
     case_name: str = "NZXT H510",
 ) -> dict[str, object]:
-    """Create a minimal serialised TowerBuild dict."""
+    """Create a minimal serialised ``TowerBuild`` dict for testing.
+
+    Args:
+        tier: Build tier name (Home, Business, or Gaming).
+        bundle_hash: SHA-256 hash identifying the build.
+        case_name: Normalised name of the PC case component.
+
+    Returns:
+        A dict matching the shape of ``TowerBuild.model_dump()``.
+    """
     return {
         "tier": tier,
         "bundle_hash": bundle_hash,
@@ -91,7 +109,16 @@ def _make_bundle(
     bundle_id: str = "bndl-001",
     tier: str = "Home",
 ) -> dict[str, object]:
-    """Create a minimal serialised BundleBuild dict."""
+    """Create a minimal serialised ``BundleBuild`` dict for testing.
+
+    Args:
+        tower_hash: SHA-256 hash of the associated tower build.
+        bundle_id: Identifier for this bundle.
+        tier: Build tier name.
+
+    Returns:
+        A dict matching the shape of ``BundleBuild.model_dump()``.
+    """
     return {
         "tower_hash": tower_hash,
         "tier": tier,
