@@ -132,3 +132,31 @@ class MediaComplianceError(OrchestratorError):
         """
         super().__init__(message)
         self.violations: list[str] = violations if violations is not None else []
+
+
+class MercadoLibreError(Exception):
+    """Raised when a MercadoLibre API operation fails.
+
+    Attributes:
+        message: Human-readable error description.
+        status_code: HTTP status code from the ML API response, if available.
+        ml_error_code: MercadoLibre-specific error code, if available.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        status_code: int | None = None,
+        ml_error_code: str | None = None,
+    ) -> None:
+        """Initialise with a descriptive message and optional API context.
+
+        Args:
+            message: Human-readable description of what went wrong.
+            status_code: HTTP status code from the ML API response, if available.
+            ml_error_code: MercadoLibre-specific error code, if available.
+        """
+        self.message = message
+        self.status_code = status_code
+        self.ml_error_code = ml_error_code
+        super().__init__(message)
