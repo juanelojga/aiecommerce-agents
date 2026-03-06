@@ -1,4 +1,4 @@
-"""Tests for Gemini API configuration settings in ``Settings``."""
+"""Tests for application configuration settings in ``Settings``."""
 
 import pytest
 
@@ -55,3 +55,43 @@ class TestGeminiEmptyApiKey:
             GOOGLE_API_KEY="",
         )
         assert settings.GOOGLE_API_KEY == ""
+
+
+class TestPublicationConfigDefaults:
+    """Tests verifying default values for publication configuration settings."""
+
+    @pytest.fixture()
+    def settings(self) -> Settings:
+        """Return a ``Settings`` instance with only the required DB URL overridden."""
+        return Settings(DATABASE_URL="sqlite+aiosqlite:///./test.db")
+
+    def test_settings_default_ml_api_url(self, settings: Settings) -> None:
+        """Default ML API URL is ``https://api.mercadolibre.com``."""
+        assert settings.MERCADOLIBRE_API_URL == "https://api.mercadolibre.com"
+
+    def test_settings_default_ml_tokens(self, settings: Settings) -> None:
+        """Default ML access and refresh tokens are empty strings."""
+        assert settings.MERCADOLIBRE_ACCESS_TOKEN == ""
+        assert settings.MERCADOLIBRE_REFRESH_TOKEN == ""
+
+    def test_settings_default_assembly_margin(self, settings: Settings) -> None:
+        """Default assembly margin percentage is 15.0."""
+        assert settings.ASSEMBLY_MARGIN_PERCENT == 15.0
+
+    def test_settings_default_ml_fee(self, settings: Settings) -> None:
+        """Default ML fee percentage is 12.0."""
+        assert settings.ML_FEE_PERCENT == 12.0
+
+
+class TestPublicationConfigFromEnv:
+    """Tests verifying that publication configuration settings load from env vars."""
+
+    def test_settings_custom_pricing_from_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Margin and fee percentages can be overridden via environment variables."""
+        monkeypatch.setenv("ASSEMBLY_MARGIN_PERCENT", "20.0")
+        monkeypatch.setenv("ML_FEE_PERCENT", "10.5")
+
+        settings = Settings(DATABASE_URL="sqlite+aiosqlite:///./test.db")
+
+        assert settings.ASSEMBLY_MARGIN_PERCENT == 20.0
+        assert settings.ML_FEE_PERCENT == 10.5
