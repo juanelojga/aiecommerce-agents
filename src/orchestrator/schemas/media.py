@@ -75,6 +75,10 @@ class MediaAsset(BaseModel):
         style: Style applied during generation; must be an ``ImageStyle`` or
             ``VideoStyle`` value.
         duration: Duration in seconds; only applicable for video assets.
+        width: Width in pixels; used for compliance dimension checks.
+        height: Height in pixels; used for compliance dimension checks.
+        mime_type: MIME type of the asset (e.g. ``"image/png"``).
+        prompt: The generation prompt used to create this asset.
     """
 
     asset_id: str
@@ -82,6 +86,10 @@ class MediaAsset(BaseModel):
     url: str
     style: ImageStyle | VideoStyle
     duration: float | None = None
+    width: int | None = None
+    height: int | None = None
+    mime_type: str | None = None
+    prompt: str | None = None
 
 
 class ImageGenerationRequest(BaseModel):
