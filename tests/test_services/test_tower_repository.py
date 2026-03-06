@@ -223,3 +223,33 @@ async def test_hash_exists_returns_false_when_absent(db_session: AsyncSession) -
     repo = TowerRepository(db_session)
 
     assert await repo.hash_exists("z" * 64) is False
+
+
+# ---------------------------------------------------------------------------
+# update_ml_id
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_update_tower_ml_id_success(db_session: AsyncSession) -> None:
+    """update_ml_id sets ml_id on an existing tower and returns it."""
+    repo = TowerRepository(db_session)
+    tower = _make_tower("p" * 64)
+    db_session.add(tower)
+    await db_session.commit()
+
+    updated = await repo.update_ml_id("p" * 64, "ML-123456789")
+    await db_session.commit()
+
+    assert updated is not None
+    assert updated.ml_id == "ML-123456789"
+
+
+@pytest.mark.asyncio
+async def test_update_tower_ml_id_not_found(db_session: AsyncSession) -> None:
+    """update_ml_id returns None when no tower matches the hash."""
+    repo = TowerRepository(db_session)
+
+    result = await repo.update_ml_id("z" * 64, "ML-999")
+
+    assert result is None
