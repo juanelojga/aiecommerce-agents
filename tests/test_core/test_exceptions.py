@@ -14,6 +14,7 @@ from orchestrator.core.exceptions import (
     InventoryError,
     MediaComplianceError,
     MediaGenerationError,
+    MercadoLibreError,
     OrchestratorError,
     TowerNotFoundError,
     UniquenessError,
@@ -181,3 +182,29 @@ class TestMediaExceptions:
         """MediaComplianceError defaults violations to an empty list."""
         exc = MediaComplianceError("compliance check failed")
         assert exc.violations == []
+
+
+class TestMercadoLibreError:
+    """Tests for MercadoLibreError."""
+
+    def test_mercadolibre_error_message(self) -> None:
+        """MercadoLibreError stores the message correctly."""
+        exc = MercadoLibreError("item not found")
+        assert exc.message == "item not found"
+        assert str(exc) == "item not found"
+
+    def test_mercadolibre_error_status_code(self) -> None:
+        """MercadoLibreError stores the optional status code."""
+        exc = MercadoLibreError("forbidden", status_code=403)
+        assert exc.status_code == 403
+
+    def test_mercadolibre_error_ml_error_code(self) -> None:
+        """MercadoLibreError stores the optional ML error code."""
+        exc = MercadoLibreError("invalid item", ml_error_code="item.invalid")
+        assert exc.ml_error_code == "item.invalid"
+
+    def test_mercadolibre_error_defaults(self) -> None:
+        """Optional fields default to None when not provided."""
+        exc = MercadoLibreError("something went wrong")
+        assert exc.status_code is None
+        assert exc.ml_error_code is None
