@@ -385,6 +385,5 @@ class TestProtocolCompliance:
     def test_satisfies_media_generator_protocol(self, settings: Settings) -> None:
         """GeminiMediaService is assignable to MediaGeneratorProtocol."""
         service = GeminiMediaService(settings)
-        generator: MediaGeneratorProtocol = service  # noqa: F841
-        # If this compiles and runs without error, the protocol is satisfied.
-        assert isinstance(service, GeminiMediaService)
+        generator: MediaGeneratorProtocol = service
+        assert generator is service

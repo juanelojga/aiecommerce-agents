@@ -120,8 +120,9 @@ class GeminiMediaService:
                 provider=_PROVIDER,
             )
 
-        image = response.generated_images[0].image
-        url = image.gcs_uri if image and image.gcs_uri else ""
+        generated = response.generated_images[0]
+        image = generated.image
+        url = (image.gcs_uri or "") if image else ""
         mime_type = image.mime_type if image else None
 
         return MediaAsset(
@@ -188,8 +189,9 @@ class GeminiMediaService:
                 provider=_PROVIDER,
             )
 
-        video = result.generated_videos[0].video
-        url = video.uri if video and video.uri else ""
+        generated = result.generated_videos[0]
+        video = generated.video
+        url = (video.uri or "") if video else ""
         mime_type = video.mime_type if video else None
 
         return MediaAsset(
