@@ -90,10 +90,17 @@ class ImageGenerationRequest(BaseModel):
     Attributes:
         product_sku: SKU of the product to generate images for.
         styles: List of image styles to generate. Defaults to all four styles.
+        case_name: Human-readable name of the PC case model used in prompt
+            construction.
+        component_summary: Brief summary of key components for prompt context.
+        tier: Build tier name (e.g. ``"Home"``, ``"Business"``, ``"Gaming"``).
     """
 
     product_sku: str
     styles: list[ImageStyle] = Field(default_factory=lambda: list(ImageStyle))
+    case_name: str = ""
+    component_summary: str = ""
+    tier: str = ""
 
 
 class VideoGenerationRequest(BaseModel):
@@ -105,6 +112,10 @@ class VideoGenerationRequest(BaseModel):
         camera_angle: Camera movement/angle. Defaults to ``CameraAngle.ORBIT``.
         include_spec_overlays: Whether to overlay product specs on the video.
         spec_overlay_texts: List of specification text strings to display as overlays.
+        case_name: Human-readable name of the PC case model used in prompt
+            construction.
+        component_summary: Brief summary of key components for prompt context.
+        tier: Build tier name (e.g. ``"Home"``, ``"Business"``, ``"Gaming"``).
     """
 
     product_sku: str
@@ -112,6 +123,9 @@ class VideoGenerationRequest(BaseModel):
     camera_angle: CameraAngle = CameraAngle.ORBIT
     include_spec_overlays: bool = False
     spec_overlay_texts: list[str] = Field(default_factory=list)
+    case_name: str = ""
+    component_summary: str = ""
+    tier: str = ""
 
 
 class ComplianceCheckResult(BaseModel):
