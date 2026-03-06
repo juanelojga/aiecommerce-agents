@@ -27,6 +27,8 @@ class GraphState(BaseModel):
         completed_bundles: Serialized ``BundleBuild`` dicts produced by the Bundle Creator node.
             Each dict contains the tower_hash, tier, peripheral selections, bundle_id hash,
             and total_peripheral_price.
+        completed_assets: Serialized creative asset dicts produced by the Creative Asset
+            Generation node. Each dict contains the asset metadata and generated content.
     """
 
     # ── Core fields (backward-compatible) ────────────────────────────────────
@@ -45,3 +47,6 @@ class GraphState(BaseModel):
 
     # ── Phase 2: Bundle Creation ──────────────────────────────────────────────
     completed_bundles: list[dict[str, object]] = Field(default_factory=list)
+
+    # ── Phase 3: Creative Asset Generation ───────────────────────────────────
+    completed_assets: list[dict[str, object]] = Field(default_factory=list)
