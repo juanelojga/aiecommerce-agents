@@ -44,7 +44,7 @@ _REQUIRED_PROMPT_KEYWORDS: tuple[str, ...] = (
     "no promotional text overlays",
 )
 
-_URL_PATTERN: re.Pattern[str] = re.compile(r"^https?://[^\s/$.?#].[^\s]*$", re.IGNORECASE)
+_URL_PATTERN: re.Pattern[str] = re.compile(r"^https?://[^\s/$.?#]+\.[^\s]*$", re.IGNORECASE)
 
 
 class MediaComplianceValidator:

@@ -21,7 +21,7 @@ _COMPLIANT_PROMPT = (
     "No promotional text overlays. No prices. Professional product photography style."
 )
 
-_NON_COMPLIANT_PROMPT = "Generate a product photograph with bright colours."
+_NON_COMPLIANT_PROMPT = "Generate a product photograph with bright colors."
 
 
 def _compliant_image(**overrides: object) -> MediaAsset:
