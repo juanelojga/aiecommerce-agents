@@ -11,7 +11,8 @@ import httpx
 
 from orchestrator.core.config import Settings
 from orchestrator.core.exceptions import APIClientError
-from orchestrator.schemas.product import ProductDetail, ProductListResponse
+from orchestrator.schemas.category_mapping import to_api_category
+from orchestrator.schemas.product import ComponentCategory, ProductDetail, ProductListResponse
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +103,7 @@ class AIEcommerceClient:
 
     async def list_products(
         self,
-        category: str | None = None,
+        category: ComponentCategory | None = None,
         active_only: bool = True,
         has_stock: bool = True,
     ) -> ProductListResponse:
@@ -112,8 +113,10 @@ class AIEcommerceClient:
         to filter results by category, active status, and stock availability.
 
         Args:
-            category: Filter by component category (e.g. ``"cpu"``). When
-                ``None`` no category filter is applied.
+            category: Filter by component category. The internal enum value
+                is automatically translated to the API category string
+                (e.g. ``ComponentCategory.CPU`` → ``"PROCESADORES"``).
+                When ``None`` no category filter is applied.
             active_only: When ``True`` only active items are returned.
             has_stock: When ``True`` only items with stock > 0 are returned.
 
@@ -125,7 +128,7 @@ class AIEcommerceClient:
         """
         params: dict[str, str] = {}
         if category is not None:
-            params["category"] = category
+            params["category"] = to_api_category(category)
         if active_only:
             params["is_active"] = "true"
         if has_stock:
