@@ -318,7 +318,7 @@ docker compose up --build
 | `POSTGRES_DB`                | `orchestrator`                         | db             | PostgreSQL database name                   |
 | `DATABASE_URL`               | `postgresql+asyncpg://...@db:5432/...` | api, sentinel  | SQLAlchemy async connection string         |
 | `AIECOMMERCE_API_URL`        | `https://api.aiecommerce.example.com`  | api, sentinel  | Base URL for the aiecommerce REST API      |
-| `AIECOMMERCE_API_KEY`        | _(empty)_                              | api, sentinel  | Bearer token for aiecommerce API           |
+| `AIECOMMERCE_API_KEY`        | _(empty)_                              | api, sentinel  | API key for aiecommerce API (sent as X-API-Key header) |
 | `MERCADOLIBRE_CLIENT_ID`     | _(empty)_                              | api            | MercadoLibre OAuth2 client ID              |
 | `MERCADOLIBRE_CLIENT_SECRET` | _(empty)_                              | api            | MercadoLibre OAuth2 client secret          |
 | `MERCADOLIBRE_REDIRECT_URI`  | `https://localhost:8000/auth/callback` | api            | MercadoLibre OAuth2 redirect URI           |

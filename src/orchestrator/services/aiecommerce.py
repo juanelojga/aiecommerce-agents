@@ -30,7 +30,7 @@ class AIEcommerceClient:
     def __init__(self, settings: Settings) -> None:
         self._base_url = settings.AIECOMMERCE_API_URL
         self._headers = {
-            "Authorization": f"Bearer {settings.AIECOMMERCE_API_KEY}",
+            "X-API-Key": settings.AIECOMMERCE_API_KEY,
             "Content-Type": "application/json",
         }
 
