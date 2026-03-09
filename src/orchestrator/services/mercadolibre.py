@@ -233,7 +233,10 @@ class MercadoLibreClient:
 
                 # Do not retry other client errors (4xx)
                 if status < 500:
-                    error_body = exc.response.json()
+                    try:
+                        error_body = exc.response.json()
+                    except Exception:
+                        error_body = {}
                     raise MercadoLibreError(
                         message=str(error_body.get("message", str(exc))),
                         status_code=status,

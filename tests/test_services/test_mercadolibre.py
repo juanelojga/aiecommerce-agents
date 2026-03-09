@@ -84,18 +84,6 @@ def _make_response(status_code: int, json_data: object) -> MagicMock:
     return mock_resp
 
 
-def _patch_httpx(mock_method: AsyncMock) -> tuple[MagicMock, AsyncMock]:
-    """Create httpx.AsyncClient mock with the given request method mock.
-
-    Returns:
-        Tuple of (mock_cls patcher target, mock_http instance).
-    """
-    mock_http = AsyncMock()
-    mock_http.request = mock_method
-    mock_http.post = mock_method
-    return mock_http, mock_method
-
-
 # ---------------------------------------------------------------------------
 # create_listing
 # ---------------------------------------------------------------------------
