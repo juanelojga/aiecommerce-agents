@@ -135,6 +135,33 @@ def test_product_list_item_invalid_category() -> None:
         ProductListItem(**bad)
 
 
+def test_product_list_item_accepts_api_category_string() -> None:
+    """ProductListItem accepts external API category strings (e.g. 'PROCESADORES')."""
+    data = {**VALID_ITEM_DATA, "category": "PROCESADORES"}
+    item = ProductListItem(**data)
+    assert item.category == ComponentCategory.CPU
+
+
+def test_product_detail_accepts_api_category_string() -> None:
+    """ProductDetail accepts external API category strings."""
+    detail = ProductDetail(
+        id=1,
+        code="PROD-001",
+        sku="MB-001",
+        normalized_name="ASUS ROG",
+        price=299.99,
+        category="MOTHER BOARDS",
+    )
+    assert detail.category == ComponentCategory.MOTHERBOARD
+
+
+def test_product_list_item_accepts_api_category_case_insensitive() -> None:
+    """API category strings are accepted regardless of case."""
+    data = {**VALID_ITEM_DATA, "category": "procesadores"}
+    item = ProductListItem(**data)
+    assert item.category == ComponentCategory.CPU
+
+
 # ---------------------------------------------------------------------------
 # ProductDetail
 # ---------------------------------------------------------------------------

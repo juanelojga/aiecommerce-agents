@@ -1,8 +1,9 @@
 """Pydantic schemas for product API responses and tower build objects."""
 
 import enum
+from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class ComponentCategory(enum.StrEnum):
@@ -37,6 +38,43 @@ class ComponentCategory(enum.StrEnum):
     SPEAKERS = "speakers"
 
 
+def _coerce_category(value: object) -> object:
+    """Coerce an API category string or internal value to a ``ComponentCategory``.
+
+    If *value* is already a ``ComponentCategory`` it is returned as-is.
+    If it is a string that matches an internal enum value (e.g. ``"cpu"``)
+    it passes through unchanged for Pydantic to convert.  Otherwise the
+    string is looked up in the API → internal reverse mapping.
+
+    Args:
+        value: Raw category value from incoming data.
+
+    Returns:
+        A value that Pydantic can convert to ``ComponentCategory``.
+    """
+    if isinstance(value, ComponentCategory):
+        return value
+
+    if isinstance(value, str):
+        # Fast path: value already matches an internal enum value.
+        try:
+            return ComponentCategory(value)
+        except ValueError:
+            pass
+
+        # Slow path: try the API → internal reverse mapping (lazy import
+        # to avoid a circular import at module level).
+        from orchestrator.schemas.category_mapping import from_api_category
+
+        try:
+            return from_api_category(value)
+        except ValueError:
+            pass
+
+    # Fall through — let Pydantic raise its own validation error.
+    return value
+
+
 class ProductListItem(BaseModel):
     """A single product from the aiecommerce product list.
 
@@ -65,6 +103,12 @@ class ProductListItem(BaseModel):
     last_bundled_date: str | None = None
     is_active: bool = True
     total_available_stock: int = 0
+
+    @field_validator("category", mode="before")
+    @classmethod
+    def _normalise_category(cls, value: Any) -> Any:
+        """Accept both internal enum values and external API category strings."""
+        return _coerce_category(value)
 
 
 class ProductDetail(BaseModel):
@@ -106,6 +150,12 @@ class ProductDetail(BaseModel):
     image_url: str | None = None
     image_urls: list[dict[str, object]] = Field(default_factory=list)
     total_available_stock: int = 0
+
+    @field_validator("category", mode="before")
+    @classmethod
+    def _normalise_category(cls, value: Any) -> Any:
+        """Accept both internal enum values and external API category strings."""
+        return _coerce_category(value)
 
 
 class ProductListResponse(BaseModel):

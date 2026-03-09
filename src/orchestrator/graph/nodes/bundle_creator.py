@@ -87,7 +87,7 @@ async def bundle_creator_node(state: GraphState) -> dict[str, object]:
     for cat in _PERIPHERAL_CATEGORIES:
         try:
             response = await api_client.list_products(
-                category=cat.value,
+                category=cat,
                 active_only=True,
                 has_stock=True,
             )

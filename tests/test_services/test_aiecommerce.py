@@ -7,7 +7,12 @@ import pytest
 
 from orchestrator.core.config import Settings
 from orchestrator.core.exceptions import APIClientError
-from orchestrator.schemas.product import ProductDetail, ProductListItem, ProductListResponse
+from orchestrator.schemas.product import (
+    ComponentCategory,
+    ProductDetail,
+    ProductListItem,
+    ProductListResponse,
+)
 from orchestrator.services.aiecommerce import _BACKOFF_BASE, _MAX_RETRIES, AIEcommerceClient
 
 # ---------------------------------------------------------------------------
@@ -97,7 +102,7 @@ class TestListProducts:
 
     @pytest.mark.asyncio
     async def test_list_products_with_category_filter(self, client: AIEcommerceClient) -> None:
-        """Passes category as a query parameter when provided."""
+        """Passes the translated API category string as a query parameter."""
         mock_resp = _make_response(200, VALID_LIST_PAYLOAD)
         mock_get = AsyncMock(return_value=mock_resp)
 
@@ -107,11 +112,11 @@ class TestListProducts:
             mock_cls.return_value.__aenter__ = AsyncMock(return_value=mock_http)
             mock_cls.return_value.__aexit__ = AsyncMock(return_value=False)
 
-            await client.list_products(category="cpu")
+            await client.list_products(category=ComponentCategory.CPU)
 
         _, call_kwargs = mock_get.call_args
         params = call_kwargs.get("params", {})
-        assert params.get("category") == "cpu"
+        assert params.get("category") == "PROCESADORES"
 
     @pytest.mark.asyncio
     async def test_list_products_active_and_stock_filters(self, client: AIEcommerceClient) -> None:

@@ -107,7 +107,7 @@ async def inventory_architect_node(state: GraphState) -> dict[str, object]:
     for cat in _INVENTORY_CATEGORIES:
         try:
             response = await api_client.list_products(
-                category=cat.value,
+                category=cat,
                 active_only=True,
                 has_stock=True,
             )
