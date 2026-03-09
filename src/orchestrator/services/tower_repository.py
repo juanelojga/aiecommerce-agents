@@ -98,6 +98,24 @@ class TowerRepository:
         await self._session.refresh(tower)
         return tower
 
+    async def update_ml_id(self, bundle_hash: str, ml_id: str) -> PublishedTower | None:
+        """Update the MercadoLibre listing ID for a published tower.
+
+        Args:
+            bundle_hash: Hash identifying the tower to update.
+            ml_id: The MercadoLibre listing ID to record.
+
+        Returns:
+            The updated :class:`PublishedTower`, or ``None`` if not found.
+        """
+        tower = await self.get_by_hash(bundle_hash)
+        if tower is None:
+            return None
+        tower.ml_id = ml_id
+        await self._session.flush()
+        await self._session.refresh(tower)
+        return tower
+
     async def hash_exists(self, bundle_hash: str) -> bool:
         """Check if a bundle hash already exists in the registry.
 
