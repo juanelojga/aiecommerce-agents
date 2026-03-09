@@ -30,6 +30,7 @@ from orchestrator.graph.workflow import (
     _NODE_BUNDLE_CREATOR,
     _NODE_CHANNEL_MANAGER,
     _NODE_CREATIVE_DIRECTOR,
+    _NODE_INVENTORY_ARCHITECT,
     _route_after_assembly,
     _route_after_bundle,
     _route_after_creative,
@@ -734,3 +735,104 @@ def test_route_after_creative_empty_builds() -> None:
     )
     route = _route_after_creative(state)
     assert route == END
+
+
+# ---------------------------------------------------------------------------
+# Phase 4: Graph structure tests — node registration & edge verification
+# ---------------------------------------------------------------------------
+
+
+def test_graph_includes_channel_manager_node() -> None:
+    """Channel manager node must be registered in the compiled graph."""
+    compiled = build_assembly_graph()
+    node_names = set(compiled.get_graph().nodes)
+    assert _NODE_CHANNEL_MANAGER in node_names
+
+
+def test_graph_includes_creative_director_node() -> None:
+    """Creative director node must be registered in the compiled graph."""
+    compiled = build_assembly_graph()
+    node_names = set(compiled.get_graph().nodes)
+    assert _NODE_CREATIVE_DIRECTOR in node_names
+
+
+def test_graph_creative_to_channel_edge() -> None:
+    """Creative director must have an edge flowing to channel manager."""
+    compiled = build_assembly_graph()
+    edges = compiled.get_graph().edges
+    creative_to_channel = any(
+        e.source == _NODE_CREATIVE_DIRECTOR and e.target == _NODE_CHANNEL_MANAGER for e in edges
+    )
+    assert creative_to_channel, "Expected edge from creative_director to channel_manager"
+
+
+def test_graph_channel_manager_to_end() -> None:
+    """Channel manager must have an unconditional edge flowing to END."""
+    compiled = build_assembly_graph()
+    edges = compiled.get_graph().edges
+    channel_to_end = any(
+        e.source == _NODE_CHANNEL_MANAGER and e.target == "__end__" and not e.conditional
+        for e in edges
+    )
+    assert channel_to_end, "Expected unconditional edge from channel_manager to __end__"
+
+
+@pytest.mark.asyncio
+async def test_full_pipeline_node_order() -> None:
+    """Full pipeline must execute nodes in correct order.
+
+    Expected: inventory_architect → bundle_creator → creative_director
+    → channel_manager.
+    """
+    execution_order: list[str] = []
+
+    async def _track_architect(_state: GraphState) -> dict[str, object]:
+        execution_order.append(_NODE_INVENTORY_ARCHITECT)
+        return _make_node_result(completed_builds=[SAMPLE_BUILD], errors=[], run_status="completed")
+
+    async def _track_bundle(_state: GraphState) -> dict[str, object]:
+        execution_order.append(_NODE_BUNDLE_CREATOR)
+        return _make_bundle_result(
+            completed_bundles=[SAMPLE_BUNDLE], errors=[], run_status="completed"
+        )
+
+    async def _track_creative(_state: GraphState) -> dict[str, object]:
+        execution_order.append(_NODE_CREATIVE_DIRECTOR)
+        return _make_creative_result(
+            completed_assets=[SAMPLE_ASSET], errors=[], run_status="completed"
+        )
+
+    async def _track_channel(_state: GraphState) -> dict[str, object]:
+        execution_order.append(_NODE_CHANNEL_MANAGER)
+        return _make_channel_result(
+            published_listings=[SAMPLE_LISTING], errors=[], run_status="completed"
+        )
+
+    with (
+        patch(
+            "orchestrator.graph.workflow.inventory_architect_node",
+            new=_track_architect,
+        ),
+        patch(
+            "orchestrator.graph.workflow.bundle_creator_node",
+            new=_track_bundle,
+        ),
+        patch(
+            "orchestrator.graph.workflow.creative_director_node",
+            new=_track_creative,
+        ),
+        patch(
+            "orchestrator.graph.workflow.channel_manager_node",
+            new=_track_channel,
+        ),
+    ):
+        compiled = build_assembly_graph()
+        initial_state = GraphState(requested_tiers=["Home"])
+        await compiled.ainvoke(initial_state)
+
+    assert execution_order == [
+        _NODE_INVENTORY_ARCHITECT,
+        _NODE_BUNDLE_CREATOR,
+        _NODE_CREATIVE_DIRECTOR,
+        _NODE_CHANNEL_MANAGER,
+    ]
