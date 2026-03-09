@@ -1,18 +1,21 @@
-"""Tests for the LangGraph assembly workflow (Phase 3 — Tower → Bundle → Creative pipeline).
+"""Tests for the LangGraph assembly workflow.
+
+Phase 4 — Tower → Bundle → Creative → Channel pipeline.
 
 Covers:
-- Graph compiles without error (three nodes: inventory_architect,
-  bundle_creator, creative_director).
+- Graph compiles without error (four nodes: inventory_architect,
+  bundle_creator, creative_director, channel_manager).
 - Successful assembly routes to bundle_creator.
 - Failed assembly routes directly to END.
 - Completed assembly with empty builds routes to END.
 - Successful bundling routes to creative_director.
 - Failed bundling routes directly to END.
 - Completed bundling with empty bundles routes to END.
-- End-to-end run with mocked services produces builds, bundles, and assets.
+- Successful creative routes to channel_manager.
+- End-to-end run with mocked services produces builds, bundles, assets, and listings.
 - Bundle node failure propagates to final state.
-- Assembly failure skips both bundle and creative nodes.
-- Existing Phase 1 & 2 scenarios remain backward compatible.
+- Assembly failure skips both bundle, creative, and channel nodes.
+- Existing Phase 1, 2, & 3 scenarios remain backward compatible.
 """
 
 from __future__ import annotations
@@ -25,9 +28,12 @@ import pytest
 from orchestrator.graph.state import GraphState
 from orchestrator.graph.workflow import (
     _NODE_BUNDLE_CREATOR,
+    _NODE_CHANNEL_MANAGER,
     _NODE_CREATIVE_DIRECTOR,
+    _NODE_INVENTORY_ARCHITECT,
     _route_after_assembly,
     _route_after_bundle,
+    _route_after_creative,
     build_assembly_graph,
 )
 
@@ -52,6 +58,16 @@ SAMPLE_ASSET: dict[str, object] = {
     "tower_hash": "deadbeef",
     "media_type": "image",
     "url": "https://example.com/image.png",
+}
+
+SAMPLE_LISTING: dict[str, object] = {
+    "ml_id": "MLA123456789",
+    "tier": "Home",
+    "title": "PC Home",
+    "price": 799.99,
+    "status": "active",
+    "permalink": "https://www.mercadolibre.com.ar/MLA123456789",
+    "tower_hash": "deadbeef",
 }
 
 
@@ -94,6 +110,19 @@ def _make_creative_result(
     }
 
 
+def _make_channel_result(
+    published_listings: list[dict[str, Any]],
+    errors: list[str],
+    run_status: str,
+) -> dict[str, object]:
+    """Return a minimal node-update dict matching what channel_manager_node returns."""
+    return {
+        "published_listings": published_listings,
+        "errors": errors,
+        "run_status": run_status,
+    }
+
+
 # ---------------------------------------------------------------------------
 # test_build_assembly_graph_compiles
 # ---------------------------------------------------------------------------
@@ -102,9 +131,15 @@ def _make_creative_result(
 def test_build_assembly_graph_compiles() -> None:
     """Graph must compile successfully without raising any exception.
 
-    Verifies the Phase 3 graph topology:
-      START → inventory_architect → (success) → bundle_creator → (success) → creative_director → END
-                                  → (failure) → END              → (failure) → END
+    Verifies the Phase 4 graph topology:
+      START → inventory_architect → (success) → bundle_creator
+                                  → (failure) → END
+
+      bundle_creator → (success) → creative_director
+                     → (failure) → END
+
+      creative_director → (success) → channel_manager → END
+                        → (failure) → END
     """
     compiled = build_assembly_graph()
     assert compiled is not None
@@ -120,8 +155,9 @@ async def test_workflow_successful_run() -> None:
     """End-to-end run with a mocked node must produce a completed state with builds.
 
     The inventory_architect_node is patched to return a successful result,
-    the bundle_creator_node is patched to return bundles, and the
-    creative_director_node is patched to return assets, so that no real
+    the bundle_creator_node is patched to return bundles, the
+    creative_director_node is patched to return assets, and the
+    channel_manager_node is patched to return listings, so that no real
     API or database connections are required.
     """
     mock_architect_result = _make_node_result(
@@ -139,6 +175,11 @@ async def test_workflow_successful_run() -> None:
         errors=[],
         run_status="completed",
     )
+    mock_channel_result = _make_channel_result(
+        published_listings=[SAMPLE_LISTING],
+        errors=[],
+        run_status="completed",
+    )
 
     with (
         patch(
@@ -153,6 +194,10 @@ async def test_workflow_successful_run() -> None:
             "orchestrator.graph.workflow.creative_director_node",
             new=AsyncMock(return_value=mock_creative_result),
         ),
+        patch(
+            "orchestrator.graph.workflow.channel_manager_node",
+            new=AsyncMock(return_value=mock_channel_result),
+        ),
     ):
         compiled = build_assembly_graph()
         initial_state = GraphState(requested_tiers=["Home"])
@@ -162,6 +207,7 @@ async def test_workflow_successful_run() -> None:
     assert result["completed_builds"] == [SAMPLE_BUILD]
     assert result["completed_bundles"] == [SAMPLE_BUNDLE]
     assert result["completed_assets"] == [SAMPLE_ASSET]
+    assert result["published_listings"] == [SAMPLE_LISTING]
     assert result["errors"] == []
 
 
@@ -301,10 +347,11 @@ def test_workflow_routes_to_end_on_empty_builds() -> None:
 
 @pytest.mark.asyncio
 async def test_workflow_end_to_end_with_bundle() -> None:
-    """Full pipeline must produce builds, bundles, and assets when assembly succeeds.
+    """Full pipeline must produce builds, bundles, assets, and listings when assembly succeeds.
 
-    All three nodes (inventory_architect_node, bundle_creator_node, and
-    creative_director_node) are mocked to return successful results.
+    All four nodes (inventory_architect_node, bundle_creator_node,
+    creative_director_node, and channel_manager_node) are mocked to
+    return successful results.
     """
     mock_architect_result = _make_node_result(
         completed_builds=[SAMPLE_BUILD],
@@ -318,6 +365,11 @@ async def test_workflow_end_to_end_with_bundle() -> None:
     )
     mock_creative_result = _make_creative_result(
         completed_assets=[SAMPLE_ASSET],
+        errors=[],
+        run_status="completed",
+    )
+    mock_channel_result = _make_channel_result(
+        published_listings=[SAMPLE_LISTING],
         errors=[],
         run_status="completed",
     )
@@ -335,6 +387,10 @@ async def test_workflow_end_to_end_with_bundle() -> None:
             "orchestrator.graph.workflow.creative_director_node",
             new=AsyncMock(return_value=mock_creative_result),
         ),
+        patch(
+            "orchestrator.graph.workflow.channel_manager_node",
+            new=AsyncMock(return_value=mock_channel_result),
+        ),
     ):
         compiled = build_assembly_graph()
         initial_state = GraphState(requested_tiers=["Home"])
@@ -344,6 +400,7 @@ async def test_workflow_end_to_end_with_bundle() -> None:
     assert result["completed_builds"] == [SAMPLE_BUILD]
     assert result["completed_bundles"] == [SAMPLE_BUNDLE]
     assert result["completed_assets"] == [SAMPLE_ASSET]
+    assert result["published_listings"] == [SAMPLE_LISTING]
     assert result["errors"] == []
 
 
@@ -354,11 +411,11 @@ async def test_workflow_end_to_end_with_bundle() -> None:
 
 @pytest.mark.asyncio
 async def test_workflow_bundle_failure_propagates() -> None:
-    """Bundle node failure must propagate to the final state and skip creative.
+    """Bundle node failure must propagate to the final state and skip creative/channel.
 
     Assembly succeeds (routes to bundle_creator), but the bundle_creator_node
     returns a failed status. The final state must reflect the failure and
-    the creative_director_node must not be invoked.
+    the creative_director_node and channel_manager_node must not be invoked.
     """
     mock_architect_result = _make_node_result(
         completed_builds=[SAMPLE_BUILD],
@@ -371,6 +428,7 @@ async def test_workflow_bundle_failure_propagates() -> None:
         run_status="failed",
     )
     creative_mock = AsyncMock()
+    channel_mock = AsyncMock()
 
     with (
         patch(
@@ -385,6 +443,10 @@ async def test_workflow_bundle_failure_propagates() -> None:
             "orchestrator.graph.workflow.creative_director_node",
             new=creative_mock,
         ),
+        patch(
+            "orchestrator.graph.workflow.channel_manager_node",
+            new=channel_mock,
+        ),
     ):
         compiled = build_assembly_graph()
         initial_state = GraphState(requested_tiers=["Home"])
@@ -394,6 +456,7 @@ async def test_workflow_bundle_failure_propagates() -> None:
     assert result["completed_bundles"] == []
     assert "Peripheral inventory unavailable" in result["errors"]
     creative_mock.assert_not_called()
+    channel_mock.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -402,14 +465,15 @@ async def test_workflow_bundle_failure_propagates() -> None:
 
 
 def test_build_assembly_graph_compiles_phase3() -> None:
-    """3-node graph must compile with all three processing nodes registered."""
+    """4-node graph must compile with all four processing nodes registered."""
     compiled = build_assembly_graph()
     assert compiled is not None
-    # Verify all three nodes are present in the compiled graph.
+    # Verify all four nodes are present in the compiled graph.
     node_names = set(compiled.get_graph().nodes)
     assert "inventory_architect" in node_names
     assert "bundle_creator" in node_names
     assert "creative_director" in node_names
+    assert "channel_manager" in node_names
 
 
 # ---------------------------------------------------------------------------
@@ -471,7 +535,7 @@ def test_route_after_bundle_empty() -> None:
 
 @pytest.mark.asyncio
 async def test_workflow_end_to_end_with_creative() -> None:
-    """Full 3-node pipeline must produce builds, bundles, and assets."""
+    """Full 4-node pipeline must produce builds, bundles, assets, and listings."""
     mock_architect_result = _make_node_result(
         completed_builds=[SAMPLE_BUILD],
         errors=[],
@@ -484,6 +548,11 @@ async def test_workflow_end_to_end_with_creative() -> None:
     )
     mock_creative_result = _make_creative_result(
         completed_assets=[SAMPLE_ASSET],
+        errors=[],
+        run_status="completed",
+    )
+    mock_channel_result = _make_channel_result(
+        published_listings=[SAMPLE_LISTING],
         errors=[],
         run_status="completed",
     )
@@ -501,6 +570,10 @@ async def test_workflow_end_to_end_with_creative() -> None:
             "orchestrator.graph.workflow.creative_director_node",
             new=AsyncMock(return_value=mock_creative_result),
         ),
+        patch(
+            "orchestrator.graph.workflow.channel_manager_node",
+            new=AsyncMock(return_value=mock_channel_result),
+        ),
     ):
         compiled = build_assembly_graph()
         initial_state = GraphState(requested_tiers=["Home"])
@@ -510,6 +583,7 @@ async def test_workflow_end_to_end_with_creative() -> None:
     assert result["completed_builds"] == [SAMPLE_BUILD]
     assert result["completed_bundles"] == [SAMPLE_BUNDLE]
     assert result["completed_assets"] == [SAMPLE_ASSET]
+    assert result["published_listings"] == [SAMPLE_LISTING]
     assert result["errors"] == []
 
 
@@ -520,10 +594,10 @@ async def test_workflow_end_to_end_with_creative() -> None:
 
 @pytest.mark.asyncio
 async def test_workflow_bundle_failure_skips_creative() -> None:
-    """Bundle fail must skip creative director node.
+    """Bundle fail must skip creative director and channel manager nodes.
 
     Assembly succeeds and routes to bundle_creator, but the bundle node fails.
-    The creative_director_node must not be invoked.
+    The creative_director_node and channel_manager_node must not be invoked.
     """
     mock_architect_result = _make_node_result(
         completed_builds=[SAMPLE_BUILD],
@@ -536,6 +610,7 @@ async def test_workflow_bundle_failure_skips_creative() -> None:
         run_status="failed",
     )
     creative_mock = AsyncMock()
+    channel_mock = AsyncMock()
 
     with (
         patch(
@@ -550,6 +625,10 @@ async def test_workflow_bundle_failure_skips_creative() -> None:
             "orchestrator.graph.workflow.creative_director_node",
             new=creative_mock,
         ),
+        patch(
+            "orchestrator.graph.workflow.channel_manager_node",
+            new=channel_mock,
+        ),
     ):
         compiled = build_assembly_graph()
         initial_state = GraphState(requested_tiers=["Home"])
@@ -557,7 +636,9 @@ async def test_workflow_bundle_failure_skips_creative() -> None:
 
     assert result["run_status"] == "failed"
     assert result["completed_assets"] == []
+    assert result["published_listings"] == []
     creative_mock.assert_not_called()
+    channel_mock.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -567,10 +648,11 @@ async def test_workflow_bundle_failure_skips_creative() -> None:
 
 @pytest.mark.asyncio
 async def test_workflow_assembly_failure_skips_all() -> None:
-    """Assembly fail must skip both bundle and creative director nodes.
+    """Assembly fail must skip bundle, creative director, and channel manager nodes.
 
     The inventory_architect_node returns a failed status. Neither the
-    bundle_creator_node nor the creative_director_node must be invoked.
+    bundle_creator_node, creative_director_node, nor channel_manager_node
+    must be invoked.
     """
     mock_architect_result = _make_node_result(
         completed_builds=[],
@@ -579,6 +661,7 @@ async def test_workflow_assembly_failure_skips_all() -> None:
     )
     bundle_mock = AsyncMock()
     creative_mock = AsyncMock()
+    channel_mock = AsyncMock()
 
     with (
         patch(
@@ -593,6 +676,10 @@ async def test_workflow_assembly_failure_skips_all() -> None:
             "orchestrator.graph.workflow.creative_director_node",
             new=creative_mock,
         ),
+        patch(
+            "orchestrator.graph.workflow.channel_manager_node",
+            new=channel_mock,
+        ),
     ):
         compiled = build_assembly_graph()
         initial_state = GraphState(requested_tiers=["Gaming"])
@@ -602,5 +689,150 @@ async def test_workflow_assembly_failure_skips_all() -> None:
     assert result["completed_builds"] == []
     assert result["completed_bundles"] == []
     assert result["completed_assets"] == []
+    assert result["published_listings"] == []
     bundle_mock.assert_not_called()
     creative_mock.assert_not_called()
+    channel_mock.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# Phase 4: Channel Manager routing tests
+# ---------------------------------------------------------------------------
+
+
+def test_route_after_creative_success() -> None:
+    """_route_after_creative must return channel_manager on success."""
+    state = GraphState(
+        run_status="completed",
+        completed_builds=[SAMPLE_BUILD],
+        completed_bundles=[SAMPLE_BUNDLE],
+        completed_assets=[SAMPLE_ASSET],
+    )
+    route = _route_after_creative(state)
+    assert route == _NODE_CHANNEL_MANAGER
+
+
+def test_route_after_creative_failure() -> None:
+    """_route_after_creative must return END for a failed state."""
+    from langgraph.graph import END
+
+    state = GraphState(
+        run_status="failed",
+        completed_builds=[SAMPLE_BUILD],
+        errors=["Creative generation failed"],
+    )
+    route = _route_after_creative(state)
+    assert route == END
+
+
+def test_route_after_creative_empty_builds() -> None:
+    """_route_after_creative must return END when builds list is empty."""
+    from langgraph.graph import END
+
+    state = GraphState(
+        run_status="completed",
+        completed_builds=[],
+    )
+    route = _route_after_creative(state)
+    assert route == END
+
+
+# ---------------------------------------------------------------------------
+# Phase 4: Graph structure tests — node registration & edge verification
+# ---------------------------------------------------------------------------
+
+
+def test_graph_includes_channel_manager_node() -> None:
+    """Channel manager node must be registered in the compiled graph."""
+    compiled = build_assembly_graph()
+    node_names = set(compiled.get_graph().nodes)
+    assert _NODE_CHANNEL_MANAGER in node_names
+
+
+def test_graph_includes_creative_director_node() -> None:
+    """Creative director node must be registered in the compiled graph."""
+    compiled = build_assembly_graph()
+    node_names = set(compiled.get_graph().nodes)
+    assert _NODE_CREATIVE_DIRECTOR in node_names
+
+
+def test_graph_creative_to_channel_edge() -> None:
+    """Creative director must have an edge flowing to channel manager."""
+    compiled = build_assembly_graph()
+    edges = compiled.get_graph().edges
+    creative_to_channel = any(
+        e.source == _NODE_CREATIVE_DIRECTOR and e.target == _NODE_CHANNEL_MANAGER for e in edges
+    )
+    assert creative_to_channel, "Expected edge from creative_director to channel_manager"
+
+
+def test_graph_channel_manager_to_end() -> None:
+    """Channel manager must have an unconditional edge flowing to END."""
+    compiled = build_assembly_graph()
+    edges = compiled.get_graph().edges
+    channel_to_end = any(
+        e.source == _NODE_CHANNEL_MANAGER and e.target == "__end__" and not e.conditional
+        for e in edges
+    )
+    assert channel_to_end, "Expected unconditional edge from channel_manager to __end__"
+
+
+@pytest.mark.asyncio
+async def test_full_pipeline_node_order() -> None:
+    """Full pipeline must execute nodes in correct order.
+
+    Expected: inventory_architect → bundle_creator → creative_director
+    → channel_manager.
+    """
+    execution_order: list[str] = []
+
+    async def _track_architect(_state: GraphState) -> dict[str, object]:
+        execution_order.append(_NODE_INVENTORY_ARCHITECT)
+        return _make_node_result(completed_builds=[SAMPLE_BUILD], errors=[], run_status="completed")
+
+    async def _track_bundle(_state: GraphState) -> dict[str, object]:
+        execution_order.append(_NODE_BUNDLE_CREATOR)
+        return _make_bundle_result(
+            completed_bundles=[SAMPLE_BUNDLE], errors=[], run_status="completed"
+        )
+
+    async def _track_creative(_state: GraphState) -> dict[str, object]:
+        execution_order.append(_NODE_CREATIVE_DIRECTOR)
+        return _make_creative_result(
+            completed_assets=[SAMPLE_ASSET], errors=[], run_status="completed"
+        )
+
+    async def _track_channel(_state: GraphState) -> dict[str, object]:
+        execution_order.append(_NODE_CHANNEL_MANAGER)
+        return _make_channel_result(
+            published_listings=[SAMPLE_LISTING], errors=[], run_status="completed"
+        )
+
+    with (
+        patch(
+            "orchestrator.graph.workflow.inventory_architect_node",
+            new=_track_architect,
+        ),
+        patch(
+            "orchestrator.graph.workflow.bundle_creator_node",
+            new=_track_bundle,
+        ),
+        patch(
+            "orchestrator.graph.workflow.creative_director_node",
+            new=_track_creative,
+        ),
+        patch(
+            "orchestrator.graph.workflow.channel_manager_node",
+            new=_track_channel,
+        ),
+    ):
+        compiled = build_assembly_graph()
+        initial_state = GraphState(requested_tiers=["Home"])
+        await compiled.ainvoke(initial_state)
+
+    assert execution_order == [
+        _NODE_INVENTORY_ARCHITECT,
+        _NODE_BUNDLE_CREATOR,
+        _NODE_CREATIVE_DIRECTOR,
+        _NODE_CHANNEL_MANAGER,
+    ]
