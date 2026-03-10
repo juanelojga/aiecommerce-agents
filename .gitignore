@@ -36,6 +36,9 @@ htmlcov/
 *.swp
 *.swo
 
+# Step-by-step test output
+scripts/output/*.json
+
 # OS
 .DS_Store
 Thumbs.db

@@ -83,7 +83,7 @@ module = "tests.*"
 disallow_untyped_defs = false
 
 [[tool.mypy.overrides]]
-module = ["langgraph.*", "langchain.*", "langchain_openai.*"]
+module = ["langgraph.*", "langchain.*", "langchain_openai.*", "google", "google.genai", "google.genai.*"]
 ignore_missing_imports = true
 
 # ── Pytest ─────────────────────────────────────────────────────────────
