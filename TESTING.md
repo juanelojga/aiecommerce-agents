@@ -4,15 +4,15 @@ This guide lets you test **each stage of the assembly pipeline individually**, w
 
 ## Overview
 
-| Step | Script | What It Tests | External APIs |
-|------|--------|---------------|---------------|
-| 0 | `test_step0_healthcheck.py` | Environment, DB, API connectivity | AIEcommerce |
-| 1 | `test_step1_product_api.py` | Product inventory fetching | AIEcommerce |
-| 2 | `test_step2_tower_assembly.py` | Component selection, compatibility, uniqueness | AIEcommerce (optional) |
-| 3 | `test_step3_bundle_creation.py` | Peripheral selection, bundle hashing | AIEcommerce |
-| 4 | `test_step4_creative_assets.py` | Image/video generation, compliance | Gemini (skippable with `--dry-run`) |
-| 5 | `test_step5_ml_publish.py` | Pricing, listing content, ML publishing | MercadoLibre (skippable with `--dry-run`) |
-| 6 | `test_step6_full_pipeline.py` | End-to-end LangGraph workflow | All of the above |
+| Step | Script                          | What It Tests                                  | External APIs                             |
+| ---- | ------------------------------- | ---------------------------------------------- | ----------------------------------------- |
+| 0    | `test_step0_healthcheck.py`     | Environment, DB, API connectivity              | AIEcommerce                               |
+| 1    | `test_step1_product_api.py`     | Product inventory fetching                     | AIEcommerce                               |
+| 2    | `test_step2_tower_assembly.py`  | Component selection, compatibility, uniqueness | AIEcommerce (optional)                    |
+| 3    | `test_step3_bundle_creation.py` | Peripheral selection, bundle hashing           | AIEcommerce                               |
+| 4    | `test_step4_creative_assets.py` | Image/video generation, compliance             | Gemini (skippable with `--dry-run`)       |
+| 5    | `test_step5_ml_publish.py`      | Pricing, listing content, ML publishing        | MercadoLibre (skippable with `--dry-run`) |
+| 6    | `test_step6_full_pipeline.py`   | End-to-end LangGraph workflow                  | All of the above                          |
 
 ---
 
@@ -42,14 +42,17 @@ cp .env.example .env
 ```
 
 **Required for all steps:**
+
 - `DATABASE_URL` — PostgreSQL connection string
 - `AIECOMMERCE_API_URL` — External product API base URL
 - `AIECOMMERCE_API_KEY` — External product API key
 
 **Required for Step 4 (without `--dry-run`):**
+
 - `GOOGLE_API_KEY` — Gemini API key for image/video generation
 
 **Required for Step 5 (without `--dry-run`):**
+
 - `MERCADOLIBRE_ACCESS_TOKEN` — ML OAuth2 access token
 - `MERCADOLIBRE_REFRESH_TOKEN` — ML OAuth2 refresh token
 - `MERCADOLIBRE_CLIENT_ID` — ML OAuth2 client ID
@@ -66,11 +69,13 @@ uv run python scripts/test_step0_healthcheck.py
 ```
 
 **What it checks:**
+
 1. Environment variables are loaded (critical API keys present).
 2. PostgreSQL is reachable and tables can be created.
 3. AIEcommerce API responds to a test call.
 
 **Expected output:**
+
 ```
 ============================================================
   Step 0 — Environment Health Check
@@ -101,6 +106,7 @@ uv run python scripts/test_step0_healthcheck.py
 ```
 
 **Troubleshooting:**
+
 - `DATABASE: FAIL` → Run `docker compose up -d db` and wait a few seconds.
 - `API: FAIL` → Check `AIECOMMERCE_API_URL` and `AIECOMMERCE_API_KEY` in `.env`.
 
@@ -115,18 +121,21 @@ uv run python scripts/test_step1_product_api.py
 ```
 
 **Options:**
+
 ```bash
 # Also fetch peripheral categories (keyboard, mouse, monitor, speakers)
 uv run python scripts/test_step1_product_api.py --include-peripherals
 ```
 
 **What it does:**
+
 1. Fetches inventory for all 8 core component categories (CPU, Motherboard, RAM, GPU, SSD, PSU, Case, Fan).
 2. Retrieves detailed specs for 1 sample product per category.
 3. Displays an inventory summary table and spec preview.
 4. Saves full data to `scripts/output/step1_inventory.json`.
 
 **Expected output:**
+
 ```
 ============================================================
   Step 1 — Product API Communication
@@ -168,6 +177,7 @@ uv run python scripts/test_step2_tower_assembly.py
 ```
 
 **Options:**
+
 ```bash
 # Test only specific tiers
 uv run python scripts/test_step2_tower_assembly.py --tiers Home Gaming
@@ -177,6 +187,7 @@ uv run python scripts/test_step2_tower_assembly.py --fresh
 ```
 
 **What it does:**
+
 1. Loads inventory from Step 1 output (or fetches fresh with `--fresh`).
 2. For each tier: selects components using tier strategy.
 3. Validates CPU↔Motherboard socket, RAM↔Motherboard, SSD↔Motherboard, PSU wattage, case form factor.
@@ -185,6 +196,7 @@ uv run python scripts/test_step2_tower_assembly.py --fresh
 6. Saves builds to `scripts/output/step2_towers.json`.
 
 **Expected output:**
+
 ```
 --- Tier: Home ---
 
@@ -207,6 +219,7 @@ uv run python scripts/test_step2_tower_assembly.py --fresh
 ```
 
 **Troubleshooting:**
+
 - `Compatibility: CPU socket mismatch` → The inventory may have incompatible components. This is expected — the system validates real constraints.
 - `No SSD components available` → The API may not have stock for that category.
 
@@ -221,11 +234,13 @@ uv run python scripts/test_step3_bundle_creation.py
 ```
 
 **Options:**
+
 ```bash
 uv run python scripts/test_step3_bundle_creation.py --tiers Home Business
 ```
 
 **What it does:**
+
 1. Loads tower builds from Step 2 output.
 2. Fetches peripheral inventory (keyboard, mouse, monitor, speakers) from the API.
 3. Selects peripherals per tier: Home=cheapest, Business=balanced, Gaming=premium+speakers.
@@ -234,6 +249,7 @@ uv run python scripts/test_step3_bundle_creation.py --tiers Home Business
 6. Saves output to `scripts/output/step3_bundles.json`.
 
 **Expected output:**
+
 ```
 --- Tier: Home (Tower: a3f8c21b...) ---
 
@@ -265,11 +281,13 @@ uv run python scripts/test_step4_creative_assets.py
 ```
 
 **Options:**
+
 ```bash
 uv run python scripts/test_step4_creative_assets.py --dry-run --tiers Home
 ```
 
 **What it does:**
+
 1. Loads builds and bundles from Step 3 output.
 2. Constructs image prompts (4 styles: front_view, three_quarter, detail_closeup, lifestyle_context).
 3. Constructs a video prompt with deterministic style/angle variation.
@@ -278,6 +296,7 @@ uv run python scripts/test_step4_creative_assets.py --dry-run --tiers Home
 6. Saves output to `scripts/output/step4_assets.json`.
 
 **Expected output (dry-run):**
+
 ```
 --- Image Prompts (4 styles) ---
 
@@ -314,11 +333,13 @@ uv run python scripts/test_step5_ml_publish.py
 ```
 
 **Options:**
+
 ```bash
 uv run python scripts/test_step5_ml_publish.py --dry-run --tiers Gaming
 ```
 
 **What it does:**
+
 1. Loads all prior data (builds, bundles, assets) from Step 4 output.
 2. Calculates final price: `(component cost) × (1 + margin%) × (1 + ML fee%)`.
 3. Generates listing title (≤60 chars) and multi-line description.
@@ -327,6 +348,7 @@ uv run python scripts/test_step5_ml_publish.py --dry-run --tiers Gaming
 6. Saves output to `scripts/output/step5_listings.json`.
 
 **Expected output (dry-run):**
+
 ```
 --- Tier: Home (Tower: a3f8c21b...) ---
 
@@ -359,11 +381,13 @@ uv run python scripts/test_step6_full_pipeline.py
 ```
 
 **Options:**
+
 ```bash
 uv run python scripts/test_step6_full_pipeline.py --tiers Home
 ```
 
 **What it does:**
+
 1. Calls `build_assembly_graph()` from the workflow module.
 2. Invokes the full graph with `{"requested_tiers": [...]}`.
 3. Displays a summary of each stage's results from the final graph state.
@@ -394,20 +418,21 @@ Step 4 → step4_assets.json   → Step 5 (loads builds + bundles + assets)
 
 All output is saved under `scripts/output/` (git-ignored):
 
-| File | Contents |
-|------|----------|
-| `step1_inventory.json` | Full inventory + specs per category |
-| `step2_towers.json` | Completed tower builds with component details |
-| `step3_bundles.json` | Bundle builds + tower builds |
-| `step4_assets.json` | Creative assets + builds + bundles |
-| `step5_listings.json` | Published listings with ML IDs |
-| `step6_full_pipeline.json` | Complete pipeline result |
+| File                       | Contents                                      |
+| -------------------------- | --------------------------------------------- |
+| `step1_inventory.json`     | Full inventory + specs per category           |
+| `step2_towers.json`        | Completed tower builds with component details |
+| `step3_bundles.json`       | Bundle builds + tower builds                  |
+| `step4_assets.json`        | Creative assets + builds + bundles            |
+| `step5_listings.json`      | Published listings with ML IDs                |
+| `step6_full_pipeline.json` | Complete pipeline result                      |
 
 ---
 
 ## Recommended Testing Flow
 
 ### First-time setup
+
 ```bash
 docker compose up -d db     # Start PostgreSQL
 uv sync                      # Install dependencies
@@ -416,11 +441,13 @@ cp .env.example .env         # Configure environment
 ```
 
 ### Verify everything works
+
 ```bash
 uv run python scripts/test_step0_healthcheck.py
 ```
 
 ### Test each step individually
+
 ```bash
 # 1. Check API connectivity and fetch inventory
 uv run python scripts/test_step1_product_api.py
@@ -439,6 +466,7 @@ uv run python scripts/test_step5_ml_publish.py --dry-run
 ```
 
 ### Test with a single tier first
+
 ```bash
 uv run python scripts/test_step2_tower_assembly.py --tiers Home
 uv run python scripts/test_step3_bundle_creation.py --tiers Home
@@ -447,6 +475,7 @@ uv run python scripts/test_step5_ml_publish.py --dry-run --tiers Home
 ```
 
 ### Run the full pipeline
+
 ```bash
 # Only when all individual steps work correctly
 uv run python scripts/test_step6_full_pipeline.py --tiers Home
@@ -456,13 +485,13 @@ uv run python scripts/test_step6_full_pipeline.py --tiers Home
 
 ## Common Issues
 
-| Issue | Cause | Fix |
-|-------|-------|-----|
-| `Database connection failed` | PostgreSQL not running | `docker compose up -d db` |
-| `API connection failed` | Wrong URL or key | Check `.env` values |
-| `No CPU components available` | API returned empty results | Verify the API has active products with stock |
-| `CPU socket mismatch` | Incompatible CPU + Motherboard in inventory | Expected — the system properly validates compatibility |
+| Issue                             | Cause                                        | Fix                                                     |
+| --------------------------------- | -------------------------------------------- | ------------------------------------------------------- |
+| `Database connection failed`      | PostgreSQL not running                       | `docker compose up -d db`                               |
+| `API connection failed`           | Wrong URL or key                             | Check `.env` values                                     |
+| `No CPU components available`     | API returned empty results                   | Verify the API has active products with stock           |
+| `CPU socket mismatch`             | Incompatible CPU + Motherboard in inventory  | Expected — the system properly validates compatibility  |
 | `Could not generate unique build` | All possible hash combinations already exist | Clear the `published_towers` table or add new inventory |
-| `Required input file not found` | Previous step was not run | Run the preceding step first |
-| `GOOGLE_API_KEY not set` | Gemini credentials missing | Add to `.env` or use `--dry-run` for Step 4 |
-| `MercadoLibre token expired` | OAuth tokens need refresh | Update tokens in `.env` or use `--dry-run` for Step 5 |
+| `Required input file not found`   | Previous step was not run                    | Run the preceding step first                            |
+| `GOOGLE_API_KEY not set`          | Gemini credentials missing                   | Add to `.env` or use `--dry-run` for Step 4             |
+| `MercadoLibre token expired`      | OAuth tokens need refresh                    | Update tokens in `.env` or use `--dry-run` for Step 5   |
